@@ -1,0 +1,20 @@
+{
+	"name": "connectivity-master",
+	"version": "1.0.0",
+	"description": "Powerful tool for managing user connectivity, handling connection control, logging events, and monitoring traffic in a FreeBSD environment.",
+	"main": "index.js",
+	"scripts": {
+		"start": "nodemon src/server/server.js"
+	},
+	"author": "Your Name",
+	"license": "MIT",
+	"dependencies": {
+		"@fastify/cors": "^8.3.0",
+		"@fastify/helmet": "^11.0.0",
+		"dotenv": "^16.3.1",
+		"fastify": "^3.20.1",
+		"fastify-helmet": "^6.0.0",
+		"fastify-multipart": "^5.4.0",
+		"http-errors": "^2.0.0"
+	}
+}
