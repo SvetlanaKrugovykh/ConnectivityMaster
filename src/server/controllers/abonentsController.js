@@ -2,15 +2,13 @@ const HttpError = require('http-errors')
 const abonentsService = require('../services/abonentsService')
 
 module.exports.abonentSwitchOff = async function (request, _reply) {
-  const { abonentId } = request.params
+  const { abonentId, ipAddress, vlanId } = request.body
 
-  const abonent = await abonentsService.switchOff(abonentId)
+  const message = await abonentsService.switchOff(abonentId, ipAddress, vlanId)
 
-  if (!abonent) {
-    throw new HttpError.NotFound('Abonent not found')
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
   }
-
-  await abonentsService.switchOff(abonentId)
 
   return {
     message: 'Abonent switched off'

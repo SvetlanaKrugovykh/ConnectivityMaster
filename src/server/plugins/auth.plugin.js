@@ -8,9 +8,7 @@ async function authPlugin(fastify, _ = {}) {
 
     request.auth = {
       token: null,
-      userId: null,
-      shopId: null,
-      shopifyAccessToken: null
+      userId: null
     }
 
     if (authorization) {
@@ -20,7 +18,6 @@ async function authPlugin(fastify, _ = {}) {
         }
       } catch (e) {
         console.log(e)
-        // fastify.logger.info(e)
       }
     }
   })

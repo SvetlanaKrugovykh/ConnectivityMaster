@@ -12,14 +12,11 @@ module.exports = {
   body: {
     type: 'object',
     properties: {
-      orders: {
-        type: 'array',
-        items: {
-          type: 'object'
-        }
-      }
+      abonentId: { type: 'string' },
+      ipAddress: { type: 'string' },
+      vlanId: { type: 'string' }
     },
-    required: ['orders']
+    required: ['abonentId', 'ipAddress', 'vlanId']
   },
   response: {
     201: {

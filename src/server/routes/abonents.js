@@ -5,11 +5,11 @@ const abonentSwitchOffSchema = require('../schemas/abonent-switch-off.schema')
 module.exports = (fastify, _opts, done) => {
   fastify.route({
     method: 'POST',
-    url: '/api/switch-off/:abonentId',
+    url: '/abonents/switch-off/',
     handler: abonentsController.abonentSwitchOff,
-    preHandler: [
-      isAuthorizedGuard
-    ],
+    // preHandler: [
+    //   isAuthorizedGuard
+    // ],
     schema: abonentSwitchOffSchema
   })
 
