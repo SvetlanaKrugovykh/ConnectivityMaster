@@ -16,7 +16,7 @@ redirectServer.register(httpProxy, {
   http2: false
 })
 
-redirectServer.all('/', async (request, reply) => {
+redirectServer.all('/redirect', async (request, reply) => {
   try {
     const proxyResponse = await redirectServer.proxy(request.raw)
     reply.send(proxyResponse)
@@ -26,7 +26,6 @@ redirectServer.all('/', async (request, reply) => {
 })
 
 app.register(authPlugin)
-app.register(require('./routes/abonents.js'))
-
+app.register(require('./routes/abonents.js'), { prefix: '/api' })
 
 module.exports = { app, redirectServer }

@@ -1,6 +1,6 @@
 const HttpError = require('http-errors')
 const abonentsService = require('../services/abonentsService')
-const addTag = process.env.PLATFORM !== 'freebsd' ? 'Test mode' : '';
+const addTag = process.env.PLATFORM !== 'freebsd' ? '( Test mode )' : ''
 
 module.exports.abonentSwitchOff = async function (request, _reply) {
   const { abonentId, ipAddress, vlanId } = request.body
