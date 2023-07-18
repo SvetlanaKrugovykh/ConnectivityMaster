@@ -13,5 +13,16 @@ module.exports = (fastify, _opts, done) => {
     schema: abonentSwitchOffSchema
   })
 
+  fastify.route({
+    method: 'POST',
+    url: '/abonents/switch-on/',
+    handler: abonentsController.abonentSwitchOn,
+    // preHandler: [
+    //   isAuthorizedGuard
+    // ],
+    schema: abonentSwitchOffSchema
+  })
+
   done()
 }
+
