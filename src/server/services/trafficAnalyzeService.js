@@ -42,9 +42,8 @@ async function processFile(logFile) {
       const lineData = {
         'quantity': fields[1],
         'srcIp': fields[4],
-        'srcPort': fields[5],
-        'dstIp': fields[6],
-        //'dstPort': fields[7],
+        'dstIp': fields[5],
+        'dstPort': fields[6],
       }
       data.push(lineData)
     }
