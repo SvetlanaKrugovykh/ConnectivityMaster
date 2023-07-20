@@ -51,6 +51,7 @@ async function processFile(logFile) {
     rl.close()
 
     processAndSaveData(serverId, subnet, data, date, hour)
+    return true
   } catch (err) {
     console.error('Error processing file:', err)
   }
@@ -71,7 +72,8 @@ async function processAndSaveData(serverId, subnet, data, date, hour) {
   }
 }
 
-module.exports.getLogsByDestinationAddress = async function (destinationAddress, startDate, endDate) {
+
+module.exports.getLogs = async function (_subnet, srcIpAddress, dstIpAddress, startDate, endDate) {
   try {
     const collectionRef = firestore.collection('logs')
 
@@ -89,7 +91,13 @@ module.exports.getLogsByDestinationAddress = async function (destinationAddress,
       const logData = doc.data()
 
       const logsWithDestinationAddress = logData.logs.filter((log) => {
-        return log.dstIp === destinationAddress
+        if (dstIpAddress.length > 7) {
+          return log.dstIp === dstIpAddress
+        } else {
+          if (srcIpAddress.length > 7) {
+            return log.srcIp === srcIpAddress
+          }
+        }
       })
 
       logsByDestinationAddress.push(...logsWithDestinationAddress)
@@ -101,5 +109,26 @@ module.exports.getLogsByDestinationAddress = async function (destinationAddress,
   } catch (err) {
     console.error('Error fetching logs from Firestore:', err)
     return []
+  }
+}
+
+module.exports.removeCollection = async function (rootCollectionId, docsCollectionId) {
+  try {
+    const collectionRef = firestore.collection(rootCollectionId)
+
+    if (docsCollectionId.length > 0) {
+      const docRef = collectionRef.doc(docsCollectionId)
+      await docRef.delete()
+      console.log('The document was deleted successfully.')
+    } else {
+      const querySnapshot = await collectionRef.get()
+      const deletePromises = querySnapshot.docs.map((doc) => doc.ref.delete())
+      await Promise.all(deletePromises);
+
+      console.log('All documents from the collection were deleted successfully.')
+      return true
+    }
+  } catch (error) {
+    console.error('The document was not deleted: ', error)
   }
 }

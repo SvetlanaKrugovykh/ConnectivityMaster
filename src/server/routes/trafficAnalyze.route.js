@@ -16,7 +16,17 @@ module.exports = (fastify, _opts, done) => {
   fastify.route({
     method: 'POST',
     url: '/trafficAnalyze/get-logs/',
-    handler: trafficAnalyzeController.GetLogs,
+    handler: trafficAnalyzeController.getLogs,
+    // preHandler: [
+    //   isAuthorizedGuard
+    // ],
+    schema: trafficAnalyzeSchema
+  })
+
+  fastify.route({
+    method: 'POST',
+    url: '/trafficAnalyze/rem-collection/',
+    handler: trafficAnalyzeController.removeCollection,
     // preHandler: [
     //   isAuthorizedGuard
     // ],

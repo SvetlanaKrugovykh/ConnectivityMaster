@@ -13,9 +13,22 @@ module.exports.logSaving = async function (_request, _reply) {
   }
 }
 
-module.exports.GetLogs = async function (request, _reply) {
-  const { destinationAddress, startDate, endDate } = request.body
-  const data = await trafficAnalyzesService.getLogs(destinationAddress, startDate, endDate)
+module.exports.getLogs = async function (request, _reply) {
+  const { subnet, srcIpAddress, dstIpAddress, startDate, endDate } = request.body
+  const message = await trafficAnalyzesService.getLogs(subnet, srcIpAddress, dstIpAddress, startDate, endDate)
+
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    data
+  }
+}
+
+module.exports.removeCollection = async function (request, _reply) {
+  const { rootCollectionId, docsCollectionId } = request.body
+  const message = await trafficAnalyzesService.removeCollection(rootCollectionId, docsCollectionId)
 
   if (!message) {
     throw new HttpError[501]('Command execution failed')
