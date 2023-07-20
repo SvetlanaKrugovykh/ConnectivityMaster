@@ -8,46 +8,52 @@ const serverId = process.env.SERVER_ID
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  //databaseURL: FIRESTORE_DB_URL
 })
 const firestore = admin.firestore()
 
 module.exports.logSaving = async function () {
+
+  for (const logFile of logFiles) {
+    await processFile(logFile)
+  }
+}
+
+async function processFile(logFile) {
+
+  const subnet = logFile.includes('168') ? '168' : '10'
   const data = []
-  let date = ''
-  let hour = ''
-  let firstLine = true
 
   try {
-    for (const logFile of logFiles) {
-      const subnet = logFile.includes('168') ? '168' : '10'
-      const rl = readline.createInterface({
-        input: fs.createReadStream(logFile),
-        crlfDelay: Infinity
-      })
+    const rl = readline.createInterface({
+      input: fs.createReadStream(logFile),
+      crlfDelay: Infinity,
+    })
 
-      rl.on('line', (line) => {
-        const fields = line.split(/\s+/)
-        if (firstLine) {
-          date = fields[1]
-          hour = fields[2]
-          firstLine = false
-        }
-        const lineData = {
-          'quantity': fields[0],
-          'srcIp': fields[4],
-          'srcPort': fields[5],
-          'dstIp': fields[6],
-          'dstPort': fields[7],
-        }
-        data.push(lineData)
-      })
+    let date, hour, firstLine = true
 
-      rl.on('close', () => {
-        processAndSaveData(serverId, subnet, data, date, hour)
-      })
+    for await (const line of rl) {
+      const fields = line.split(/\s+/)
+      if (firstLine) {
+        date = fields[2]
+        hour = fields[3]
+        firstLine = false
+      }
+      const lineData = {
+        'quantity': fields[1],
+        'srcIp': fields[4],
+        'srcPort': fields[5],
+        'dstIp': fields[6],
+        //'dstPort': fields[7],
+      }
+      data.push(lineData)
     }
+
+    rl.close()
+
+    processAndSaveData(serverId, subnet, data, date, hour)
   } catch (err) {
-    console.error(err)
+    console.error('Error processing file:', err)
   }
 }
 
@@ -76,33 +82,33 @@ async function processAndSaveData(serverId, subnet, data, date, hour) {
 
 module.exports.getLogsByDestinationAddress = async function (destinationAddress, startDate, endDate) {
   try {
-    const collectionRef = firestore.collection('logs');
+    const collectionRef = firestore.collection('logs')
 
-    const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate));
-    const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate));
+    const startTimestamp = admin.firestore.Timestamp.fromDate(new Date(startDate))
+    const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate))
 
     const querySnapshot = await collectionRef
       .where('date', '>=', startTimestamp)
       .where('date', '<=', endTimestamp)
-      .get();
+      .get()
 
-    const logsByDestinationAddress = [];
+    const logsByDestinationAddress = []
 
     querySnapshot.forEach((doc) => {
-      const logData = doc.data();
+      const logData = doc.data()
 
       const logsWithDestinationAddress = logData.logs.filter((log) => {
-        return log.dstIp === destinationAddress;
-      });
+        return log.dstIp === destinationAddress
+      })
 
-      logsByDestinationAddress.push(...logsWithDestinationAddress);
-    });
+      logsByDestinationAddress.push(...logsWithDestinationAddress)
+    })
 
-    console.log('Logs found successfully.');
+    console.log('Logs found successfully.')
 
-    return logsByDestinationAddress;
+    return logsByDestinationAddress
   } catch (err) {
-    console.error('Error fetching logs from Firestore:', err);
-    return [];
+    console.error('Error fetching logs from Firestore:', err)
+    return []
   }
 }
