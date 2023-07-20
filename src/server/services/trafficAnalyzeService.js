@@ -60,18 +60,10 @@ async function processFile(logFile) {
 async function processAndSaveData(serverId, subnet, data, date, hour) {
   try {
     const collectionRef = firestore.collection('logs')
-    const documentId = `${date}_${hour}`
+    const documentId = `${serverId}-${subnet}-${date}_${hour}`
 
     const docRef = collectionRef.doc(documentId)
-    const docSnapshot = await docRef.get()
-
-    if (docSnapshot.exists) {
-      await docRef.update({
-        logs: admin.firestore.FieldValue.arrayUnion(...data)
-      })
-    } else {
-      await docRef.set({ logs: data })
-    }
+    await docRef.set({ logs: data })
 
     console.log('Data saved to Firestore successfully.')
   } catch (err) {
