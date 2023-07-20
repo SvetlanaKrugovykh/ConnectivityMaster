@@ -14,10 +14,12 @@ const firestore = admin.firestore()
 
 module.exports.logSaving = async function () {
 
+  let message = ''
   for (const logFile of logFiles) {
-    const message = await processFile(logFile)
-    return message
+    const processMessage = await processFile(logFile)
+    message += `${logFile} => ${processMessage}`
   }
+  return message
 }
 
 async function processFile(logFile) {
@@ -58,13 +60,12 @@ async function processFile(logFile) {
   }
 }
 
-
 async function processAndSaveData(serverId, subnet, data, date, hour) {
   try {
     const collectionRef = firestore.collection('logs')
     const documentId = `${serverId}-${subnet}-${date}_${hour}`
-
-    const newData = { datedoc: `${date}T${hour}:59:59`, hour, subnet, serverId, logs: data }
+    const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hour}:59:59`))
+    const newData = { datedoc, hour, subnet, serverId, logs: data }
 
     const docRef = collectionRef.doc(documentId)
     await docRef.set(newData)
@@ -73,7 +74,6 @@ async function processAndSaveData(serverId, subnet, data, date, hour) {
     console.error('Error saving data to Firestore:', err)
   }
 }
-
 
 module.exports.getLogs = async function (_subnet, srcIpAddress, dstIpAddress, startDate, endDate) {
   try {
@@ -87,30 +87,28 @@ module.exports.getLogs = async function (_subnet, srcIpAddress, dstIpAddress, st
       .where('datedoc', '<=', endTimestamp)
       .get()
 
-    const logsByDestinationAddress = []
+    const selectionEntries = []
 
     querySnapshot.forEach((doc) => {
+
       const logData = doc.data()
-      const { logs } = logData
 
-      const filteredLogs = logs.filter((log) => {
-        const { srcIp, dstIp } = log
-        if (srcIpAddress && srcIpAddress.length > 7) {
-          return srcIp === srcIpAddress
-        } else if (dstIpAddress) {
-          return dstIp === dstIpAddress
+      if (_subnet.length > 0 && _subnet !== logData.subnet) return
+
+      const { logs, hour } = logData
+      const datedoc = logData.datedoc.toDate().toISOString().slice(0, 10)
+
+      logs.forEach((log) => {
+        const { quantity, srcIp, dstIp, dstPort } = log
+        if (dstIpAddress.length > 7 && dstIp.includes(dstIpAddress)) {
+          selectionEntries.push({ srcIp, dstIp, dstPort, quantity, datedoc, hour })
         }
-        return true
+        if (srcIpAddress.length > 7 && srcIp.includes(srcIpAddress)) {
+          selectionEntries.push({ srcIp, dstIp, dstPort, quantity, datedoc, hour })
+        }
       })
-
-      if (filteredLogs.length > 0) {
-        logsByDestinationAddress.push(...filteredLogs)
-      }
     })
-
-    console.log('Logs found successfully.')
-
-    return logsByDestinationAddress
+    return selectionEntries
   } catch (err) {
     console.error('Error fetching logs from Firestore:', err)
     return []

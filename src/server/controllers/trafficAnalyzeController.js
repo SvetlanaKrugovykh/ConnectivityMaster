@@ -9,7 +9,7 @@ module.exports.logSaving = async function (_request, _reply) {
   }
 
   return {
-    message: `trafficAnalyze saved successfully`
+    message
   }
 }
 
