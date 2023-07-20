@@ -15,7 +15,8 @@ const firestore = admin.firestore()
 module.exports.logSaving = async function () {
 
   for (const logFile of logFiles) {
-    await processFile(logFile)
+    const message = await processFile(logFile)
+    return message
   }
 }
 
@@ -51,7 +52,7 @@ async function processFile(logFile) {
     rl.close()
 
     processAndSaveData(serverId, subnet, data, date, hour)
-    return true
+    return ('Data saved to Firestore successfully.')
   } catch (err) {
     console.error('Error processing file:', err)
   }
@@ -63,10 +64,11 @@ async function processAndSaveData(serverId, subnet, data, date, hour) {
     const collectionRef = firestore.collection('logs')
     const documentId = `${serverId}-${subnet}-${date}_${hour}`
 
-    const docRef = collectionRef.doc(documentId)
-    await docRef.set({ logs: data })
+    const newData = { datedoc: `${date}T${hour}:59:59`, hour, subnet, serverId, logs: data }
 
-    console.log('Data saved to Firestore successfully.')
+    const docRef = collectionRef.doc(documentId)
+    await docRef.set(newData)
+
   } catch (err) {
     console.error('Error saving data to Firestore:', err)
   }
@@ -81,26 +83,29 @@ module.exports.getLogs = async function (_subnet, srcIpAddress, dstIpAddress, st
     const endTimestamp = admin.firestore.Timestamp.fromDate(new Date(endDate))
 
     const querySnapshot = await collectionRef
-      .where('date', '>=', startTimestamp)
-      .where('date', '<=', endTimestamp)
+      .where('datedoc', '>=', startTimestamp)
+      .where('datedoc', '<=', endTimestamp)
       .get()
 
     const logsByDestinationAddress = []
 
     querySnapshot.forEach((doc) => {
       const logData = doc.data()
+      const { logs } = logData
 
-      const logsWithDestinationAddress = logData.logs.filter((log) => {
-        if (dstIpAddress.length > 7) {
-          return log.dstIp === dstIpAddress
-        } else {
-          if (srcIpAddress.length > 7) {
-            return log.srcIp === srcIpAddress
-          }
+      const filteredLogs = logs.filter((log) => {
+        const { srcIp, dstIp } = log
+        if (srcIpAddress && srcIpAddress.length > 7) {
+          return srcIp === srcIpAddress
+        } else if (dstIpAddress) {
+          return dstIp === dstIpAddress
         }
+        return true
       })
 
-      logsByDestinationAddress.push(...logsWithDestinationAddress)
+      if (filteredLogs.length > 0) {
+        logsByDestinationAddress.push(...filteredLogs)
+      }
     })
 
     console.log('Logs found successfully.')
@@ -123,7 +128,7 @@ module.exports.removeCollection = async function (rootCollectionId, docsCollecti
     } else {
       const querySnapshot = await collectionRef.get()
       const deletePromises = querySnapshot.docs.map((doc) => doc.ref.delete())
-      await Promise.all(deletePromises);
+      await Promise.all(deletePromises)
 
       console.log('All documents from the collection were deleted successfully.')
       return true

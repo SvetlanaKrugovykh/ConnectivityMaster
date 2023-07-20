@@ -9,15 +9,15 @@ module.exports.logSaving = async function (_request, _reply) {
   }
 
   return {
-    message: `trafficAnalyze savwed successfully`
+    message: `trafficAnalyze saved successfully`
   }
 }
 
 module.exports.getLogs = async function (request, _reply) {
   const { subnet, srcIpAddress, dstIpAddress, startDate, endDate } = request.body
-  const message = await trafficAnalyzesService.getLogs(subnet, srcIpAddress, dstIpAddress, startDate, endDate)
+  const data = await trafficAnalyzesService.getLogs(subnet, srcIpAddress, dstIpAddress, startDate, endDate)
 
-  if (!message) {
+  if (!data) {
     throw new HttpError[501]('Command execution failed')
   }
 
