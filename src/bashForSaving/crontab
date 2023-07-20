@@ -1,0 +1,10 @@
+# /etc/crontab - root's crontab for FreeBSD
+# $FreeBSD: releng/12.1/usr.sbin/cron/cron/crontab 338497 2018-09-06 14:55:54Z brd $
+#
+SHELL=/bin/sh
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+# Adjust the time zone if the CMOS clock keeps local time, as opposed to
+# UTC time.  See adjkerntz(8) for details.
+*/1	*	*	*	*	root	/usr/local/etc/rc.d/99statistika.sh
+0	*	*	*	*	root	/usr/local/etc/rc.d/99_4hour_stat.sh
+*/15	*	*	*	*	root	service named restart >/dev/null 2>&1

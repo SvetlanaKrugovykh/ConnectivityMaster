@@ -26,6 +26,7 @@ redirectServer.all('/redirect', async (request, reply) => {
 })
 
 app.register(authPlugin)
-app.register(require('./routes/abonents.js'), { prefix: '/api' })
+app.register(require('./routes/abonents.route'), { prefix: '/api' })
+app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
 
 module.exports = { app, redirectServer }
