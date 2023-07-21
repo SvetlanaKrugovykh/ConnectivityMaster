@@ -33,6 +33,16 @@ module.exports = (fastify, _opts, done) => {
     schema: trafficAnalyzeSchema
   })
 
+  fastify.route({
+    method: 'POST',
+    url: '/trafficAnalyze/mac-saving/',
+    handler: trafficAnalyzeController.macSaving,
+    // preHandler: [
+    //   isAuthorizedGuard
+    // ],
+    schema: trafficAnalyzeSchema
+  })
+
   done()
 }
 
