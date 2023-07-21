@@ -1,6 +1,7 @@
 const fs = require('fs')
 const readline = require('readline')
 const admin = require('firebase-admin')
+const sendReqToDB = require('../modules/to_local_DB.js');
 
 const logFiles = [process.env.PF_LOG_FILE168, process.env.PF_LOG_FILE10]
 const serviceAccount = JSON.parse(fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS))
@@ -53,7 +54,8 @@ async function processFile(logFile) {
 
     rl.close()
 
-    processAndSaveData(serverId, subnet, data, date, hour)
+    if (process.env.SAVE_TO_FIRESTORE === 'true') processAndSaveData(serverId, subnet, data, date, hour)
+    if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB(serverId, subnet, data, date, hour)
     return ('Data saved to Firestore successfully.')
   } catch (err) {
     console.error('Error processing file:', err)
@@ -75,6 +77,16 @@ async function processAndSaveData(serverId, subnet, data, date, hour) {
   }
 }
 
+async function processAndSaveDataToLocalDB(serverId, subnet, data, date, hour) {
+  try {
+    const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hour}:59:59`))
+    const newData = { datedoc, hour, subnet, serverId, logs: data }
+    const response = await sendReqToDB('__traffic__', newData, '');
+    console.log(response);
+  } catch (err) {
+    console.error('Error saving data to local DB:', err)
+  }
+}
 module.exports.getLogs = async function (_subnet, srcIpAddress, dstIpAddress, startDate, endDate) {
   try {
     const collectionRef = firestore.collection('logs')
