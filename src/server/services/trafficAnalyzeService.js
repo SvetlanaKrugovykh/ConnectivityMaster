@@ -122,14 +122,12 @@ module.exports.removeCollection = async function (rootCollectionId, docsCollecti
     if (docsCollectionId.length > 0) {
       const docRef = collectionRef.doc(docsCollectionId)
       await docRef.delete()
-      console.log('The document was deleted successfully.')
+      return ('The document was deleted successfully.')
     } else {
       const querySnapshot = await collectionRef.get()
       const deletePromises = querySnapshot.docs.map((doc) => doc.ref.delete())
       await Promise.all(deletePromises)
-
-      console.log('All documents from the collection were deleted successfully.')
-      return true
+      return ('All documents from the collection were deleted successfully.')
     }
   } catch (error) {
     console.error('The document was not deleted: ', error)

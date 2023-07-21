@@ -35,6 +35,6 @@ module.exports.removeCollection = async function (request, _reply) {
   }
 
   return {
-    data
+    message
   }
 }
