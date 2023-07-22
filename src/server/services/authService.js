@@ -7,7 +7,8 @@ const secretKey = crypto.createHash('sha256').update(serviceAccount.private_key)
 
 module.exports.createAccessToken = async function (payload) {
   if (process.env.ACCEPT_CREATING_ACCESS_TOKENS === 'true') {
-    return jwt.sign(payload, secretKey, { expiresIn: '1h' })
+    const expiresIn = 180 * 24 * 3600
+    return jwt.sign(payload, secretKey, { expiresIn })
   } else {
     throw new Error('Access token creation is disabled')
   }
@@ -17,7 +18,7 @@ module.exports.checkAccessToken = async function (token) {
   try {
     return jwt.verify(token, secretKey)
   } catch (err) {
-    return null // Token verification failed
+    return null
   }
 }
 
