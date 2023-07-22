@@ -7,9 +7,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/trafficAnalyze/log-saving/',
     handler: trafficAnalyzeController.logSaving,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: trafficAnalyzeSchema
   })
 
@@ -17,9 +17,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/trafficAnalyze/get-logs/',
     handler: trafficAnalyzeController.getLogs,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: trafficAnalyzeSchema
   })
 
@@ -27,9 +27,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/trafficAnalyze/rem-collection/',
     handler: trafficAnalyzeController.removeCollection,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: trafficAnalyzeSchema
   })
 
@@ -37,9 +37,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/trafficAnalyze/mac-saving/',
     handler: trafficAnalyzeController.macSaving,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: trafficAnalyzeSchema
   })
 

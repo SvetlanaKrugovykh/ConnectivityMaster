@@ -7,9 +7,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/abonents/switch-off/',
     handler: abonentsController.abonentSwitchOff,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: abonentSwitchOffSchema
   })
 
@@ -17,9 +17,9 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/abonents/switch-on/',
     handler: abonentsController.abonentSwitchOn,
-    // preHandler: [
-    //   isAuthorizedGuard
-    // ],
+    preHandler: [
+      isAuthorizedGuard
+    ],
     schema: abonentSwitchOffSchema
   })
 

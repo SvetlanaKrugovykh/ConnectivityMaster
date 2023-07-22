@@ -1,5 +1,6 @@
 const Fastify = require('fastify')
-const authPlugin = require('./plugins/auth.plugin')
+const authPlugin = require('./plugins/app.auth.plugin')
+const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const httpProxy = require('@fastify/http-proxy')
 
 const app = Fastify({
@@ -25,8 +26,11 @@ redirectServer.all('/redirect', async (request, reply) => {
   }
 })
 
+
 app.register(authPlugin)
 app.register(require('./routes/abonents.route'), { prefix: '/api' })
 app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
+
+redirectServer.register(redirectPlugin)
 
 module.exports = { app, redirectServer }
