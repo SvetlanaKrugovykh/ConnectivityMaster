@@ -1,5 +1,6 @@
 const fp = require('fastify-plugin')
 require('dotenv').config()
+const authService = require('../services/authService')
 
 const allowedIPAddresses = process.env.API_ALLOWED_IPS.split(',')
 
@@ -22,13 +23,15 @@ async function authPlugin(fastify, _ = {}) {
 
     request.auth = {
       token: null,
-      userId: null
+      clientId: null
     }
 
     if (authorization) {
       try {
+        const decoded = await authService.checkAccessToken(authorization)
         request.auth = {
-          token: authorization
+          token: authorization,
+          clientId: decoded.clientId
         }
       } catch (e) {
         console.log(e)
