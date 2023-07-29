@@ -6,5 +6,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 # Adjust the time zone if the CMOS clock keeps local time, as opposed to
 # UTC time.  See adjkerntz(8) for details.
 */1	*	*	*	*	root	/usr/local/etc/rc.d/99statistika.sh
-0	*	*	*	*	root	/usr/local/etc/rc.d/99_4hour_stat.sh
+0	*	*	*	*	root sleep 30 && /usr/local/etc/rc.d/99_4hour_stat.sh
+5	*	*	*	*	root	/intelligence/CM-SERVER/curl_for_log_saving.sh
 */15	*	*	*	*	root	service named restart >/dev/null 2>&1
