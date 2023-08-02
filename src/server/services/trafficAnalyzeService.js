@@ -1,7 +1,7 @@
 const fs = require('fs')
 const readline = require('readline')
 const admin = require('firebase-admin')
-const sendReqToDB = require('../modules/to_local_DB.js');
+const sendReqToDB = require('../modules/to_local_DB.js')
 
 const logFiles = [process.env.PF_LOG_FILE168, process.env.PF_LOG_FILE10]
 const macsFile = process.env.MACS_FILE
@@ -116,8 +116,7 @@ async function processAndSaveDataToLocalDB(type, serverId, subnet, data, date, h
   try {
     const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hour}:59:59`))
     const newData = { datedoc, hour, subnet, serverId, logs: data }
-    const response = await sendReqToDB(type, newData, '');
-    console.log(response);
+    await sendReqToDB(type, newData, '')
   } catch (err) {
     console.error('Error saving data to local DB:', err)
   }

@@ -7,10 +7,10 @@ const allowedSubnets = process.env.REDIRECT_ALLOWED_SUBNETS.split(',')
 const restrictIPSubnetMiddleware = (req, reply, done) => {
   const clientIP = req.ip
   if (!ipRangeCheck(clientIP, allowedSubnets)) {
-    console.log(`Client IP is not allowed: ${clientIP}`)
+    console.log(`${new Date()}: Client IP is Forbidden: ${clientIP}`)
     reply.code(403).send('Forbidden')
   } else {
-    console.log(`Client IP is allowed: ${clientIP}`)
+    console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
     done()
   }
 }

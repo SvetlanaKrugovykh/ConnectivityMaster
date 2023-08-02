@@ -4,15 +4,15 @@ function ipfw(args) {
   const child = spawn('/sbin/ipfw', args)
 
   child.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`)
+    console.log(`${new Date()}: stdout: ${data}`)
   })
 
   child.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`)
+    console.error(`${new Date()}: stderr: ${data}`)
   })
 
   child.on('close', (code) => {
-    console.log(`child process exited with code ${code}`)
+    console.log(`${new Date()}: child process exited with code ${code}`)
   })
 
   return child
@@ -27,14 +27,14 @@ module.exports.switchOff = async function (abonentId, ipAddress, vlanId) {
     const deleteCommand = ipfw(['delete', abonentId])
     deleteCommand.on('close', (code) => {
       if (code === 0) {
-        console.log(`Deleted rule ${abonentId} successfully.`)
+        console.log(`${new Date()}: Deleted rule ${abonentId} successfully.`)
       }
     })
 
     const addCommand = ipfw(['add', abonentId, 'deny', 'ip', 'from', `${ipAddress}/32`, 'to', 'any', 'via', `vlan${vlanId}`, 'in'])
     addCommand.on('close', (code) => {
       if (code === 0) {
-        console.log(`Added rule ${abonentId} successfully.`)
+        console.log(`${new Date()}: Added rule ${abonentId} successfully.`)
       }
     })
 
@@ -54,12 +54,12 @@ module.exports.switchOn = async function (abonentId) {
     const deleteCommand = ipfw(['delete', abonentId])
     deleteCommand.on('close', (code) => {
       if (code === 0) {
-        console.log(`Deleted rule ${abonentId} successfully.`)
+        console.log(`${new Date()}: Deleted rule ${abonentId} successfully.`)
       }
     })
     return true
   } catch (error) {
-    console.error('Error executing commands:', error)
+    console.error(`${new Date()}:Error executing commands:`, error)
     return false
   }
 }

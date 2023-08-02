@@ -5,7 +5,6 @@ const AUTH_TOKEN = process.env.AUTH_TOKEN;
 async function sendReqToDB(reqType, data, _text) {
 
   let dataString = JSON.stringify(data);
-  console.log(dataString);
 
   try {
     const response = await axios({
@@ -21,14 +20,12 @@ async function sendReqToDB(reqType, data, _text) {
       }
     });
     if (!response.status == 200) {
-      console.log(response.status)
       return null
     } else {
       if (reqType === '__GetClientPersData__') {
         return response.data
       } else {
-        let answer = response.data.toString();
-        console.log(answer.slice(0, 125) + '...');
+        let answer = response.data.toString()
         return answer;
       }
     }
