@@ -16,7 +16,7 @@ module.exports.abonentSwitchOff = async function (request, _reply) {
 }
 
 module.exports.abonentSwitchOn = async function (request, _reply) {
-  const abonentId = request.body
+  const { abonentId } = request.body
   const message = await abonentsService.switchOn(abonentId)
 
   if (!message) {
