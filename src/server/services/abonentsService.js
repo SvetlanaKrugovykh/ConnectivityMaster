@@ -22,7 +22,6 @@ module.exports.switchOff = async function (abonentId, ipAddress, vlanId) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true
   }
-  abonentId = String(abonentId)
 
   try {
     const deleteCommand = ipfw(['delete', abonentId])
@@ -50,8 +49,6 @@ module.exports.switchOn = async function (abonentId) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true
   }
-
-  abonentId = String(abonentId)
 
   try {
     const deleteCommand = ipfw(['delete', abonentId])
