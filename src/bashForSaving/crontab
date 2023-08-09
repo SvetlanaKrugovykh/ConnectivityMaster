@@ -9,3 +9,5 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 0	*	*	*	*	root sleep 30 && /usr/local/etc/rc.d/99_4hour_stat.sh
 5	*	*	*	*	root	/intelligence/CM-SERVER/curl_for_log_saving.sh
 */15	*	*	*	*	root	service named restart >/dev/null 2>&1
+
+1       0       *       *       *       root    sh /root/.pm2/logs/log_rotation.sh >/dev/null 2>&1
