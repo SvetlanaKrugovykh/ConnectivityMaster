@@ -24,7 +24,6 @@ if [ -s "$out_log" ]; then
 fi
 
 # Create new log files
-touch "$error_log"
-touch "$out_log"
-
-# Rest of your script...
+#touch "$error_log"
+#touch "$out_log"
+pm2 restart "Obuhiv-CM-Server"
