@@ -84,13 +84,13 @@ function getAbonentIdТForRules(abonentId) {
   console.log(`${new Date()}: nAbonentId: ${nAbonentId}`)
   let bgnr = ''
   if (nAbonentId < 1000) {
-    bgnr = '01'
+    bgnr = '1'
   } else if (nAbonentId >= 1000 && nAbonentId < 2000) {
-    bgnr = '02'
+    bgnr = '2'
   } else if (nAbonentId >= 2000 && nAbonentId < 3000) {
-    bgnr = '03'
+    bgnr = '3'
   } else if (nAbonentId >= 3000 && nAbonentId < 4000) {
-    bgnr = '04'
+    bgnr = '4'
   }
   console.log(`${new Date()}: ${bgnr}${abonentId.substr(-3)}`)
   return `${bgnr}${abonentId.substr(-3)}`
