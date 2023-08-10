@@ -81,6 +81,7 @@ module.exports.switchOn = async function (abonentId) {
 
 function getAbonentIdТForRules(abonentId) {
   const nAbonentId = Number(abonentId)
+  console.log(`${new Date()}: nAbonentId: ${nAbonentId}`)
   let bgnr = ''
   if (nAbonentId < 1000) {
     bgnr = '01'
@@ -91,6 +92,7 @@ function getAbonentIdТForRules(abonentId) {
   } else if (nAbonentId >= 3000 && nAbonentId < 4000) {
     bgnr = '04'
   }
+  console.log(`${new Date()}: bgnr: ${bgnr}`)
   return `${bgnr}${abonentId}`
 }
 //await abonentsService.switchOff('9999', '192.168.199.199', '199')  //temprorary for testing
