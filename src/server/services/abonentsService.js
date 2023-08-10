@@ -57,7 +57,7 @@ module.exports.switchOn = async function (abonentId) {
     await new Promise((resolve, reject) => {
       deleteCommand.on('exit', (code) => {
         if (code === 0) {
-          console.log(`${new Date()}: Deleted rule ${abonentId} ->  {abonentIdТForRules} successfully.`)
+          console.log(`${new Date()}: Deleted rule ${abonentId} ->  ${abonentIdТForRules} successfully.`)
           resolve()
         } else {
           const errorMessage = `Error deleting rule ${abonentId} -> ${abonentIdТForRules}, exit code: ${code}`
@@ -92,8 +92,8 @@ function getAbonentIdТForRules(abonentId) {
   } else if (nAbonentId >= 3000 && nAbonentId < 4000) {
     bgnr = '04'
   }
-  console.log(`${new Date()}: bgnr: ${bgnr}`)
-  return `${bgnr}${abonentId}`
+  console.log(`${new Date()}: ${bgnr}${abonentId.substr(-3)}`)
+  return `${bgnr}${abonentId.substr(-3)}`
 }
 //await abonentsService.switchOff('9999', '192.168.199.199', '199')  //temprorary for testing
 //await abonentsService.switchOn('9999')  //temprorary for testing
