@@ -91,10 +91,12 @@ function checkServiceStatus(service) {
 function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false) {
   const [removedIP] = removeFromList.splice(foundIndex, 1)
   addToList.push({ ip_address: removedIP.ip_address, count: 1 })
+  let resource = ''
+  if (service) { resource = 'Service' } else { resource = 'Host' }
 
-  const msg = `Host ${ip_address.ip_address} (${ip_address.ip_description}) changed status from ${fromStatus} to ${toStatus}`
+  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) changed status from ${fromStatus} to ${toStatus}`
   console.log(msg)
-  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address}#${fromStatus}#${toStatus}#${service}`, '')
+  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
   sendTelegramMessage(msg)
 }
 
