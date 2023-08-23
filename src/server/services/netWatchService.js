@@ -54,7 +54,6 @@ async function netWatchPingerProbe(ip_address) {
     const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
     ping.sys.probe(ip_address.ip_address, async function (isAlive) {
       if (isAlive) {
-        console.log(`${formattedDate} Host at ${ip_address.ip_address} is  alive`)
         handleAliveStatus(ip_address)
       } else {
         console.log(`${formattedDate} Host at ${ip_address.ip_address} is  not alive`)
@@ -72,7 +71,6 @@ function checkServiceStatus(service) {
   const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
   try {
     client.connect(Number(service.Port), service.ip_address.trim(), () => {
-      console.log(`${formattedDate} Service at ${service.ip_address.trim()}:${service.Port} is alive`)
       handleServiceAliveStatus(service)
       client.end()
     })
@@ -95,7 +93,6 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
   if (service) { resource = 'Service' } else { resource = 'Host' }
 
   const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) changed status from ${fromStatus} to ${toStatus}`
-  console.log(msg)
   sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
   sendTelegramMessage(msg)
 }
@@ -191,9 +188,7 @@ async function sendTelegramMessage(message) {
     let modifiedText = message.replace("alive", "✅ alive")
     modifiedText = modifiedText.replace("dead", "❌ dead")
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, modifiedText)
-    if (response) {
-      console.log('message sent to chat', response)
-    } else {
+    if (!response) {
       console.log('Error sending Telegram message.')
     }
   } catch (error) {
