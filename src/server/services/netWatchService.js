@@ -188,7 +188,9 @@ async function sendTelegramMessage(message) {
   const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
 
   try {
-    const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, message)
+    let modifiedText = message.replace("alive", "✅ alive")
+    modifiedText = modifiedText.replace("dead", "❌ dead")
+    const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, modifiedText)
     if (response) {
       console.log('message sent to chat', response)
     } else {
