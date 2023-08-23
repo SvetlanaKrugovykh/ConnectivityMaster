@@ -107,7 +107,7 @@ function handleDeadStatus(ip_address) {
 
   if (foundIndexDead !== -1) {
     deadIP[foundIndexDead].count++
-    if (loadStatus === 'alive') handleStatusChange(ip_address, foundIndexAlive, aliveIP, deadIP, 'alive', 'dead')
+    if (loadStatus === 'alive') handleStatusChange(ip_address, foundIndexDead, aliveIP, deadIP, 'alive', 'dead')
   } else {
     const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
 
@@ -122,9 +122,12 @@ function handleDeadStatus(ip_address) {
 
 function handleServiceDeadStatus(service) {
   const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
+  const loadStatus = service.status.toLowerCase()
+  service.status = 'dead'
 
   if (foundIndexDead !== -1) {
     deadServiceIP[foundIndexDead].count++
+    if (loadStatus === 'alive') handleStatusChange(service, foundIndexDead, aliveServiceIP, deadServiceIP, 'alive', 'dead', true)
   } else {
     const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
 
@@ -132,6 +135,7 @@ function handleServiceDeadStatus(service) {
       handleStatusChange(service, foundIndexAlive, aliveServiceIP, deadServiceIP, 'alive', 'dead', true)
     } else {
       deadServiceIP.push({ service: service.ip_address, count: 1 })
+      if (loadStatus === 'alive') handleStatusChange(service, foundIndexAlive, aliveServiceIP, deadServiceIP, 'alive', 'dead', true)
     }
   }
 }
@@ -151,7 +155,7 @@ function handleAliveStatus(ip_address) {
       handleStatusChange(ip_address, foundIndexDead, deadIP, aliveIP, 'dead', 'alive')
     } else {
       aliveIP.push({ ip_address: ip_address.ip_address, count: 1 })
-      if (loadStatus === 'dead') handleStatusChange(ip_address, foundIndexAlive, aliveIP, deadIP, 'dead', 'alive')
+      if (loadStatus === 'dead') handleStatusChange(ip_address, foundIndexDead, aliveIP, deadIP, 'dead', 'alive')
     }
   }
 
@@ -159,9 +163,12 @@ function handleAliveStatus(ip_address) {
 
 function handleServiceAliveStatus(service) {
   const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
+  const loadStatus = service.status.toLowerCase()
+  service.status = 'alive'
 
   if (foundIndexAlive !== -1) {
     aliveServiceIP[foundIndexAlive].count++
+    if (loadStatus === 'dead') handleStatusChange(service, foundIndexAlive, aliveServiceIP, deadServiceIP, 'dead', 'alive', true)
   } else {
     const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
 
@@ -169,6 +176,7 @@ function handleServiceAliveStatus(service) {
       handleStatusChange(service, foundIndexDead, deadServiceIP, aliveServiceIP, 'dead', 'alive', true)
     } else {
       aliveServiceIP.push({ service: service.ip_address, count: 1 })
+      if (loadStatus === 'dead') handleStatusChange(ip_address, foundIndexDead, aliveServiceIP, deadServiceIP, 'dead', 'alive', true)
     }
   }
 }
@@ -182,7 +190,7 @@ async function sendTelegramMessage(message) {
   try {
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, message)
     if (response) {
-      console.log('message sent to chatia:', response)
+      console.log('message sent to chat', response)
     } else {
       console.log('Error sending Telegram message.')
     }
