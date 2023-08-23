@@ -6,6 +6,7 @@ const sendReqToDB = require('../modules/to_local_DB.js')
 
 const aliveIP = {}
 const deadIP = {}
+let start = true
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const chatId = NOTIFICATION_TELEGRAM_GROUP_ID
@@ -31,11 +32,22 @@ async function netWatchStarter() {
       servicesList.forEach(service => {
         checkServiceStatus(service)
       })
+      if (start) start = false
     } catch (err) {
       console.log(err)
     }
   }, servicesPoolingInterval)
 }
+
+//#region snmp
+async function snmpGet(ip_address, oid) {
+  const session = new snmp.Session({ host: ip_address, community: 'public' })
+  const response = await session.get({ oid: oid })
+  session.close()
+  return response
+}
+//#endregion
+
 
 //region  checkers
 async function netWatchPingerProbe(ip_address) {
@@ -74,6 +86,7 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
 
   const msg = `Host ${ip_address} changed status from ${fromStatus} to ${toStatus}`
   console.log(msg)
+  if (start) return
   sendReqToDB('__SaveStatusChangeToDb__', `${ip_address}#${fromStatus}#${toStatus}`, '')
   sendTelegramMessage(msg)
 }
