@@ -1,15 +1,16 @@
 const ping = require('ping')
 const net = require('net')
 const snmp = require('snmp-native')
-const fetch = require('node-fetch')
-const sendReqToDB = require('../modules/to_local_DB.js')
+const { sendReqToDB, sendToChat } = require('../modules/to_local_DB.js')
 
-const aliveIP = {}
-const deadIP = {}
+const aliveIP = []
+const deadIP = []
+const aliveServiceIP = []
+const deadServiceIP = []
 let start = true
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
-const chatId = NOTIFICATION_TELEGRAM_GROUP_ID
+const telegramChatId = process.env.TELEGRAM_CHAT_ID
 
 async function netWatchStarter() {
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
@@ -41,7 +42,7 @@ async function netWatchStarter() {
 
 //#region snmp
 async function snmpGet(ip_address, oid) {
-  const session = new snmp.Session({ host: ip_address, community: 'public' })
+  const session = new snmp.Session({ host: ip_address.ip_addres, community: 'public' })
   const response = await session.get({ oid: oid })
   session.close()
   return response
@@ -52,10 +53,13 @@ async function snmpGet(ip_address, oid) {
 //region  checkers
 async function netWatchPingerProbe(ip_address) {
   try {
-    ping.sys.probe(ip_address, async function (isAlive) {
+    const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    ping.sys.probe(ip_address.ip_address, async function (isAlive) {
       if (isAlive) {
+        console.log(`${formattedDate} Host at ${ip_address.ip_address}: is  alive`)
         handleAliveStatus(ip_address)
       } else {
+        console.log(`${formattedDate} Host at ${ip_address.ip_address}: is  not alive`)
         handleDeadStatus(ip_address)
       }
     })
@@ -67,58 +71,93 @@ async function netWatchPingerProbe(ip_address) {
 
 function checkServiceStatus(service) {
   const client = new net.Socket()
+  const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
 
-  client.connect(service.port, service.ip_address, () => {
-    console.log(`Service at ${service.ip_address}:${service.port} is alive`)
+  client.connect(service.Port, service.ip_address, () => {
+    console.log(`${formattedDate} Service at ${service.ip_address}:${service.Port} is alive`)
+    handleServiceAliveStatus(service)
     client.end()
   })
 
   client.on('error', () => {
-    console.log(`Service at ${service.ip_address}:${service.port} is not alive`)
+    console.log(`${formattedDate} Service at ${service.ip_address}:${service.Port} is not alive`)
+    handleServiceDeadStatus(service)
   })
 }
 //#endregion
 
 //#region  status handlers
-function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus) {
+function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false) {
   const [removedIP] = removeFromList.splice(foundIndex, 1)
   addToList.push({ ip_address: removedIP.ip_address, count: 1 })
 
-  const msg = `Host ${ip_address} changed status from ${fromStatus} to ${toStatus}`
+  const msg = `Host ${ip_address.ip_address} (${ip_address.ip_description}) changed status from ${fromStatus} to ${toStatus}`
   console.log(msg)
   if (start) return
-  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address}#${fromStatus}#${toStatus}`, '')
+  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address}#${fromStatus}#${toStatus}#${service}`, '')
   sendTelegramMessage(msg)
 }
 
 function handleDeadStatus(ip_address) {
-  const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address)
+  const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
 
   if (foundIndexDead !== -1) {
     deadIP[foundIndexDead].count++
   } else {
-    const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address)
+    const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
 
     if (foundIndexAlive !== -1) {
       handleStatusChange(ip_address, foundIndexAlive, aliveIP, deadIP, 'alive', 'dead')
     } else {
-      deadIP.push({ ip_address, count: 1 })
+      deadIP.push({ ip_address: ip_address.ip_address, count: 1 })
+    }
+  }
+}
+
+function handleServiceDeadStatus(service) {
+  const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
+
+  if (foundIndexDead !== -1) {
+    deadServiceIP[foundIndexDead].count++
+  } else {
+    const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
+
+    if (foundIndexAlive !== -1) {
+      handleStatusChange(service, foundIndexAlive, aliveServiceIP, deadServiceIP, 'alive', 'dead', true)
+    } else {
+      deadServiceIP.push({ service: service.ip_address, count: 1 })
     }
   }
 }
 
 function handleAliveStatus(ip_address) {
-  const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address)
+  const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
 
   if (foundIndexAlive !== -1) {
     aliveIP[foundIndexAlive].count++
   } else {
-    const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address)
+    const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
 
     if (foundIndexDead !== -1) {
       handleStatusChange(ip_address, foundIndexDead, deadIP, aliveIP, 'dead', 'alive')
     } else {
-      aliveIP.push({ ip_address, count: 1 })
+      aliveIP.push({ ip_address: ip_address.ip_address, count: 1 })
+    }
+  }
+}
+
+function handleServiceAliveStatus(service) {
+  const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
+
+  if (foundIndexAlive !== -1) {
+    aliveServiceIP[foundIndexAlive].count++
+  } else {
+    const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
+
+    if (foundIndexDead !== -1) {
+      handleStatusChange(service, foundIndexDead, deadServiceIP, aliveServiceIP, 'dead', 'alive', true)
+    } else {
+      aliveServiceIP.push({ service: service.ip_address, count: 1 })
     }
   }
 }
@@ -130,21 +169,11 @@ async function sendTelegramMessage(message) {
   const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message
-      })
-    })
-    const responseData = await response.json()
-    if (responseData.ok) {
-      console.log('Telegram message sent successfully:', responseData.result.text)
+    const response = await sendToChat(apiUrl, telegramBotToken, chatId, message)
+    if (response) {
+      console.log('message sent to chatia:', response)
     } else {
-      console.error('Telegram message sending failed:', responseData.description)
+      console.log('Error sending Telegram message.')
     }
   } catch (error) {
     console.error('Error sending Telegram message:', error)
