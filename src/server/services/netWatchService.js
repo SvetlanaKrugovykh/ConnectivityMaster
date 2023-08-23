@@ -69,7 +69,7 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
 
   const msg = `Host ${ip_address} changed status from ${fromStatus} to ${toStatus}`
   console.log(msg)
-  // You can also implement sending Telegram messages or other notifications here
+  sendReqToDB('__SaveStatusChangeToDb__', ip_address, '')
 }
 
 function handleDeadStatus(ip_address) {
