@@ -1,9 +1,14 @@
 const ping = require('ping')
 const net = require('net')
+const snmp = require('snmp-native')
+const fetch = require('node-fetch')
 const sendReqToDB = require('../modules/to_local_DB.js')
 
 const aliveIP = {}
 const deadIP = {}
+
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
+const chatId = NOTIFICATION_TELEGRAM_GROUP_ID
 
 async function netWatchStarter() {
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
@@ -69,7 +74,8 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
 
   const msg = `Host ${ip_address} changed status from ${fromStatus} to ${toStatus}`
   console.log(msg)
-  sendReqToDB('__SaveStatusChangeToDb__', ip_address, '')
+  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address}#${fromStatus}#${toStatus}`, '')
+  sendTelegramMessage(msg)
 }
 
 function handleDeadStatus(ip_address) {
@@ -106,6 +112,32 @@ function handleAliveStatus(ip_address) {
 
 //#endregion
 
+//#region  send message to telegram
+async function sendTelegramMessage(message) {
+  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message
+      })
+    })
+    const responseData = await response.json()
+    if (responseData.ok) {
+      console.log('Telegram message sent successfully:', responseData.result.text)
+    } else {
+      console.error('Telegram message sending failed:', responseData.description)
+    }
+  } catch (error) {
+    console.error('Error sending Telegram message:', error)
+  }
+}
+//#endregion
 
 //#region  get data from DB
 async function loadipList() {

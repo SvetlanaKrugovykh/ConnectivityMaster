@@ -24,6 +24,8 @@
 		"ip-range-check": "^0.2.0",
 		"jsonwebtoken": "^9.0.1",
 		"net": "^1.0.2",
-		"ping": "^0.4.4"
+		"node-fetch": "^3.3.2",
+		"ping": "^0.4.4",
+		"snmp-native": "^1.2.0"
 	}
 }
