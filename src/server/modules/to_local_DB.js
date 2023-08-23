@@ -22,7 +22,7 @@ async function sendReqToDB(reqType, data, _text) {
     if (!response.status == 200) {
       return null
     } else {
-      if (reqType === '__GetClientPersData__') {
+      if (reqType === '__GetClientPersData__' || reqType === '__GetIpAddressesForWatching__') {
         return response.data
       } else {
         let answer = response.data.toString()
@@ -31,10 +31,10 @@ async function sendReqToDB(reqType, data, _text) {
     }
 
   } catch (err) {
-    console.log(err);
-    return null;
+    console.log(err)
+    return null
   }
 }
 
 
-module.exports = sendReqToDB;
+module.exports = sendReqToDB

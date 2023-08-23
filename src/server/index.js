@@ -2,6 +2,7 @@ const Fastify = require('fastify')
 const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const httpProxy = require('@fastify/http-proxy')
+const { netWatchStarter } = require('./services/netWatchService')
 
 const app = Fastify({
   trustProxy: true
@@ -33,5 +34,9 @@ app.register(require('./routes/abonents.route'), { prefix: '/api' })
 app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
 
 redirectServer.register(redirectPlugin)
+
+if (process.env.NETWATCHING_ENABLED === 'true') {
+  netWatchStarter()
+}
 
 module.exports = { app, redirectServer }
