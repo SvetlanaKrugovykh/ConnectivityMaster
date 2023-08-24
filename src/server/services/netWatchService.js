@@ -88,11 +88,16 @@ function checkServiceStatus(service) {
 //#region  status handlers
 function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false) {
   const [removedIP] = removeFromList.splice(foundIndex, 1)
-  addToList.push({ ip_address: removedIP.ip_address, count: 1 })
-  let resource = ''
-  if (service) { resource = 'Service' } else { resource = 'Host' }
+  const existingIndex = addToList.findIndex(item => item.ip_address === removedIP.ip_address)
+  if (existingIndex !== -1) {
+    addToList[existingIndex].count = 1
+  } else {
+    addToList.push({ ip_address: removedIP.ip_address, count: 1 })
+  }
 
-  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) changed status from ${fromStatus} to ${toStatus}`
+  let resource = ''
+  if (service) { resource = `Service Port:${ip_address.Port}` } else { resource = 'Host' }
+  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) switched ${fromStatus} to ${toStatus}`
   sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
   sendTelegramMessage(msg)
 }
@@ -118,6 +123,7 @@ function handleDeadStatus(ip_address) {
 }
 
 function handleServiceDeadStatus(service) {
+  console.log('handleServiceDeadStatus: aliveServiceIP, deadServiceIP', aliveServiceIP.length, deadServiceIP.length)
   const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
   const loadStatus = service.status.toLowerCase()
   service.status = 'dead'
