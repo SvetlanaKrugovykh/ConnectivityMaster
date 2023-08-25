@@ -12,10 +12,23 @@ const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID
 
 async function netWatchStarter() {
+
+  let ipList = await loadipList()
+  let servicesList = await loadServicesList()
+  console.table(ipList)
+  console.table(servicesList)
+
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
   const servicesPoolingInterval = parseInt(process.env.SERVICES_POOLING_INTERVAL) * 1000
-  const ipList = await loadipList()
-  const servicesList = await loadServicesList()
+
+  if (process.env.NETWATCHING_TEST_MODE === 'true') {
+    console.log('NETWATCHING_TEST_MODE is true')
+    const { testIpList, testServiceList } = require('../data/netWatchTestData.js')
+    ipList = testIpList
+    servicesList = testServiceList
+    console.table(ipList)
+    console.table(servicesList)
+  }
 
   setInterval(() => {
     try {
@@ -191,8 +204,9 @@ async function sendTelegramMessage(message) {
   const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
 
   try {
-    let modifiedText = message.replace("alive", "✅ alive")
-    modifiedText = modifiedText.replace("dead", "❌ dead")
+    let modifiedText = message.replace("alive", "✅")
+    modifiedText = modifiedText.replace("dead", "❌")
+    console.log(`aliveIP.length = ${aliveIP.length}, deadIP.length= ${deadIP.length};aliveServiceIP.length = ${aliveServiceIP.length}, deadServiceIP.length= ${deadServiceIP.length}`)
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, modifiedText)
     if (!response) {
       console.log('Error sending Telegram message.')
