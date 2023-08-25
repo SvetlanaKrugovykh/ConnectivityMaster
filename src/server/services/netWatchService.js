@@ -15,8 +15,6 @@ async function netWatchStarter() {
 
   let ipList = await loadipList()
   let servicesList = await loadServicesList()
-  console.table(ipList)
-  console.table(servicesList)
 
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
   const servicesPoolingInterval = parseInt(process.env.SERVICES_POOLING_INTERVAL) * 1000
@@ -26,8 +24,6 @@ async function netWatchStarter() {
     const { testIpList, testServiceList } = require('../data/netWatchTestData.js')
     ipList = testIpList
     servicesList = testServiceList
-    console.table(ipList)
-    console.table(servicesList)
   }
 
   setInterval(() => {
