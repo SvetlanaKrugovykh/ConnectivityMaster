@@ -106,7 +106,7 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
 
   let resource = ''
   if (service) { resource = `Service Port:${ip_address.Port}` } else { resource = 'Host' }
-  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) switched ${fromStatus} to ${toStatus}`
+  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}`
   sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
   sendTelegramMessage(msg)
 }
@@ -192,7 +192,7 @@ function handleServiceAliveStatus(service) {
       handleStatusChange(service, foundIndexDead, deadServiceIP, aliveServiceIP, 'dead', 'alive', true)
     } else {
       aliveServiceIP.push({ service: service.ip_address, count: 1 })
-      if (loadStatus === 'dead') handleStatusChange(ip_address, foundIndexDead, aliveServiceIP, deadServiceIP, 'dead', 'alive', true)
+      if (loadStatus === 'dead') handleStatusChange(service, foundIndexDead, aliveServiceIP, deadServiceIP, 'dead', 'alive', true)
     }
   }
 }
