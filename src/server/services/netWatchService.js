@@ -174,6 +174,10 @@ function handleAliveStatus(ip_address) {
 }
 
 function handleServiceAliveStatus(service) {
+  if (!service.ip_address) {
+    console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
+    return
+  }
   const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
   const loadStatus = service.status.toLowerCase()
   service.status = 'alive'
