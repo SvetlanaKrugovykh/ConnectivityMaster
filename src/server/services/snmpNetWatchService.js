@@ -67,8 +67,8 @@ function handleSnmpObjectAliveStatus(snmpObject) {
   }
 }
 
-async function snmpGet(snmpObject) {
-  const session = new snmp.Session({ host: snmpObject.ip_address, community: 'public', timeout: 100 })
+async function snmpGet(snmpObject, community = 'public') {
+  const session = new snmp.Session({ host: snmpObject.ip_address, community: community, timeout: 100 })
 
   return new Promise((resolve, reject) => {
     session.get({ oid: snmpObject.oid }, (error, varbinds) => {
