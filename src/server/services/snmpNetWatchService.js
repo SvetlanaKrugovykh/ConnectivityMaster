@@ -68,23 +68,29 @@ function handleSnmpObjectAliveStatus(snmpObject) {
 }
 
 async function snmpGet(snmpObject, community = 'public') {
-  const session = new snmp.Session({ host: snmpObject.ip_address, community: community, timeout: 100 })
+  const session = new snmp.Session({ host: snmpObject.ip_address, community: community, timeout: 50 })
 
-  return new Promise((resolve, reject) => {
-    session.get({ oid: snmpObject.oid }, (error, varbinds) => {
-      session.close()
+  try {
+    const varbinds = await new Promise((resolve, reject) => {
+      session.get({ oid: snmpObject.oid }, (error, varbinds) => {
+        session.close()
 
-      if (error) {
-        reject(error)
-      } else {
-        if (varbinds.length > 0) {
-          resolve(varbinds[0].value)
+        if (error) {
+          reject(error)
         } else {
-          reject(new Error('No response received'))
+          resolve(varbinds)
         }
-      }
+      })
     })
-  })
+
+    if (varbinds.length > 0) {
+      return varbinds[0].value
+    } else {
+      throw new Error('No response received')
+    }
+  } catch (error) {
+    throw error
+  }
 }
 
 async function loadSnmpObjectsList() {

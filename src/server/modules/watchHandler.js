@@ -8,7 +8,7 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
   const [removedIP] = removeFromList.splice(foundIndex, 1)
   const existingIndex = addToList.findIndex(item => item.ip_address === removedIP.ip_address)
 
-  console.log('handleStatusChange: removeFromList, addToList', removeFromList.length, addToList.length)
+  console.log(`${new Date().toISOString()}:handleStatusChange: removeFromList, addToList, ${removeFromList.length}, ${addToList.length} service = ${service}`)
 
   if (existingIndex !== -1) {
     addToList[existingIndex].count = 1
