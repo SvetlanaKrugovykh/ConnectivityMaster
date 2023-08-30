@@ -43,7 +43,7 @@ async function netWatchStarter() {
   setInterval(() => {
     try {
       snmpObjectsList.forEach(snmpObject => {
-        // checksnmpObjectStatus(snmpObject)
+        checksnmpObjectStatus(snmpObject)
       })
     } catch (err) {
       console.log(err)

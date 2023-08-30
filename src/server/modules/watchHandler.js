@@ -4,7 +4,7 @@ const { sendReqToDB, sendToChat } = require('./to_local_DB.js')
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID
 
-function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false) {
+function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false, response = '') {
   const [removedIP] = removeFromList.splice(foundIndex, 1)
   const existingIndex = addToList.findIndex(item => item.ip_address === removedIP.ip_address)
 
@@ -17,9 +17,15 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
   }
 
   let resource = ''
+  let msg = ''
   if (service) { resource = `Service Port:${ip_address.Port}` } else { resource = 'Host' }
-  const msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}`
-  sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
+  if (response === '') {
+    msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}`
+    sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
+  } else {
+    msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}/n${response}`
+    sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#${ip_address.oid}#${response}#`, '')
+  }
   sendTelegramMessage(msg)
 }
 //#endregion

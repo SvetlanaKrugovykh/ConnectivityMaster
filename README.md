@@ -10,6 +10,9 @@ ConnectivityMaster is a powerful tool for managing user connectivity, handling c
 - Connection control: Enable or disable internet connectivity for subscribers
 - Event logging: Record and track various events related to subscribers and traffic
 - Traffic monitoring: Gain insights into network traffic patterns and usage statistics
+- Ping devices
+- Check services
+- Check snmp healthy values
 
 ## Requirements
 
