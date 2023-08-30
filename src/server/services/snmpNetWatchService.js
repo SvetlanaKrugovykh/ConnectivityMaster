@@ -61,7 +61,7 @@ function handleSnmpObjectAliveStatus(snmpObject, response) {
     if (foundIndexDead !== -1) {
       handleStatusChange(snmpObject, foundIndexDead, alivesnmpObjectIP, alivesnmpObjectIP, 'dead', 'alive', true, response)
     } else {
-      alivenmpObjectIP.push({ nmpObject: snmpObject.ip_address, count: 1 })
+      alivesnmpObjectIP.push({ nmpObject: snmpObject.ip_address, count: 1 })
       if (loadStatus === 'dead') handleStatusChange(snmpObject, foundIndexDead, alivesnmpObjectIP, deadsnmpObjectIP, 'dead', 'alive', true, response)
     }
   }
