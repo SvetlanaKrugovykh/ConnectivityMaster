@@ -26,6 +26,7 @@ function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, f
     msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}\n${response}`
     sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#${ip_address.oid}#${response}#`, '')
   }
+  msg = msg.replace("Port:undefined", "snmp")
   sendTelegramMessage(msg)
 }
 //#endregion
