@@ -10,8 +10,7 @@ async function checksnmpObjectStatus(snmpObject) {
   const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
   try {
     const response = await snmpGet(snmpObject)
-    console.log('snmpGetResponse', response)
-    if (response.incudes('Status OK')) {
+    if (response.includes('Status OK')) {
       handleSnmpObjectAliveStatus(snmpObject, response)
     } else {
       console.log(`${formattedDate} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
