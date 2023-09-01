@@ -4,7 +4,18 @@ const { sendReqToDB, sendToChat } = require('./to_local_DB.js')
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID
 
-function handleStatusChange(ip_address, foundIndex, removeFromList, addToList, fromStatus, toStatus, service = false, response = '') {
+function handleStatusChange(args) {
+  const {
+    ip_address,
+    foundIndex,
+    removeFromList,
+    addToList,
+    fromStatus,
+    toStatus,
+    service = false,
+    response = ''
+  } = args
+
   const [removedIP] = removeFromList.splice(foundIndex, 1)
   const existingIndex = addToList.findIndex(item => item.ip_address === removedIP.ip_address)
 

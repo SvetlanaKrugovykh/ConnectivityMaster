@@ -30,15 +30,15 @@ function handleSnmpObjectDeadStatus(snmpObject, response) {
 
   if (foundIndexDead !== -1) {
     deadsnmpObjectIP[foundIndexDead].count++
-    if (loadStatus === 'alive') handleStatusChange(snmpObject, foundIndexDead, alivesnmpObjectIP, deadsnmpObjectIP, 'alive', 'dead', true, response)
+    if (loadStatus === 'alive') handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexDead, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: 'alive', toStatus: 'dead', service: true, response })
   } else {
     const foundIndexAlive = alivesnmpObjectIP.findIndex(item => item.ip_address === snmpObject.ip_address)
 
     if (foundIndexAlive !== -1) {
-      handleStatusChange(snmpObject, foundIndexAlive, alivesnmpObjectIP, deadsnmpObjectIP, 'alive', 'dead', true, response)
+      handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexAlive, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: 'alive', toStatus: 'dead', service: true, response })
     } else {
       deadsnmpObjectIP.push({ snmpObject: snmpObject.ip_address, count: 1 })
-      if (loadStatus === 'alive') handleStatusChange(snmpObject, foundIndexAlive, alivesnmpObjectIP, deadsnmpObjectIP, 'alive', 'dead', true, response)
+      if (loadStatus === 'alive') handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexAlive, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: 'alive', toStatus: 'dead', service: true, response })
     }
   }
 }
@@ -54,15 +54,15 @@ function handleSnmpObjectAliveStatus(snmpObject, response) {
 
   if (foundIndexAlive !== -1) {
     alivesnmpObjectIP[foundIndexAlive].count++
-    if (loadStatus === 'dead') handleStatusChange(snmpObject, foundIndexAlive, alivesnmpObjectIP, deadsnmpObjectIP, 'dead', 'alive', true, response)
+    if (loadStatus === 'dead') handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexAlive, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: 'dead', toStatus: 'alive', service: true, response })
   } else {
     const foundIndexDead = deadsnmpObjectIP.findIndex(item => item.ip_address === snmpObject.ip_address)
 
     if (foundIndexDead !== -1) {
-      handleStatusChange(snmpObject, foundIndexDead, alivesnmpObjectIP, alivesnmpObjectIP, 'dead', 'alive', true, response)
+      handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexDead, removeFromList: alivesnmpObjectIP, addToList: alivesnmpObjectIP, fromStatus: 'dead', toStatus: 'alive', service: true, response })
     } else {
       alivesnmpObjectIP.push({ nmpObject: snmpObject.ip_address, count: 1 })
-      if (loadStatus === 'dead') handleStatusChange(snmpObject, foundIndexDead, alivesnmpObjectIP, deadsnmpObjectIP, 'dead', 'alive', true, response)
+      if (loadStatus === 'dead') handleStatusChange({ ip_address: snmpObject, foundIndex: foundIndexDead, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: 'dead', toStatus: 'alive', service: true, response })
     }
   }
 }
