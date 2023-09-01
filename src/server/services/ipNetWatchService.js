@@ -58,7 +58,7 @@ function handleAliveStatus(ip_address) {
   if (foundIndexAlive !== -1) {
     aliveIP[foundIndexAlive].count++
     if (loadStatus === Status.DEAD) {
-      handleStatusChange({ ip_address, foundIndex: foundIndexAlive, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
+      handleStatusChange({ ip_address, foundIndex: foundIndexAlive, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
     }
   } else {
     const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)

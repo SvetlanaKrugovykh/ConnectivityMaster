@@ -31,7 +31,7 @@ function checkServiceStatus(service) {
 
 function handleServiceDeadStatus(service) {
   console.log('handleServiceDeadStatus: aliveServiceIP, deadServiceIP', aliveServiceIP.length, deadServiceIP.length)
-  const foundIndexDead = deadServiceIP.findIndex(item => item.service === service.ip_address)
+  const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
   const loadStatus = service.status.toLowerCase()
   service.status = Status.DEAD
 
@@ -41,7 +41,7 @@ function handleServiceDeadStatus(service) {
       handleStatusChange({ ip_address: service, foundIndex: foundIndexDead, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
     }
   } else {
-    const foundIndexAlive = aliveServiceIP.findIndex(item => item.service === service.ip_address)
+    const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
 
     if (foundIndexAlive !== -1) {
       handleStatusChange({ ip_address: service, foundIndex: foundIndexAlive, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
@@ -59,7 +59,7 @@ function handleServiceAliveStatus(service) {
     console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
     return
   }
-  const foundIndexAlive = aliveServiceIP.findIndex(item => item.service === service.ip_address)
+  const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
   const loadStatus = service.status.toLowerCase()
   service.status = Status.ALIVE
 
@@ -69,7 +69,7 @@ function handleServiceAliveStatus(service) {
       handleStatusChange({ ip_address: service, foundIndex: foundIndexAlive, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
     }
   } else {
-    const foundIndexDead = deadServiceIP.findIndex(item => item.service === service.ip_address)
+    const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
 
     if (foundIndexDead !== -1) {
       handleStatusChange({ ip_address: service, foundIndex: foundIndexDead, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
