@@ -55,7 +55,11 @@ function handleDeadStatus(ip_address) {
     if (loadStatus === Status.ALIVE) {
       handleStatusChange({ ip_address, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
     } else {
-      deadIP[foundIndexDead].count++
+      if (foundIndexDead === -1) {
+        deadIP.push({ ip_address: ip_address.ip_address, count: 1 })
+      } else {
+        deadIP[foundIndexDead].count++
+      }
       ip_address.status = Status.DEAD
     }
   } catch (err) {
@@ -70,7 +74,11 @@ function handleAliveStatus(ip_address) {
     if (loadStatus === Status.DEAD) {
       handleStatusChange({ ip_address, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
     } else {
-      aliveIP[foundIndexAlive].count++
+      if (foundIndexAlive === -1) {
+        aliveIP.push({ ip_address: ip_address.ip_address, count: 1 })
+      } else {
+        aliveIP[foundIndexAlive].count++
+      }
       ip_address.status = Status.ALIVE
     }
   } catch (err) {

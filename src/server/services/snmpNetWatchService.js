@@ -37,7 +37,11 @@ function handleSnmpObjectDeadStatus(snmpObject, response) {
     if (loadStatus === Status.ALIVE) {
       handleStatusChange({ ip_address: snmpObject, removeFromList: alivesnmpObjectIP, addToList: deadsnmpObjectIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true, response })
     } else {
-      deadsnmpObjectIP[foundIndexDead].count++
+      if (foundIndexDead === -1) {
+        deadsnmpObjectIP.push({ ip_address: snmpObject.ip_address, oid: snmpObject.oid, count: 1 })
+      } else {
+        deadsnmpObjectIP[foundIndexDead].count++
+      }
       snmpObject.status = Status.DEAD
     }
   } catch (err) {
@@ -56,7 +60,11 @@ function handleSnmpObjectAliveStatus(snmpObject, response) {
     if (loadStatus === Status.DEAD) {
       handleStatusChange({ ip_address: snmpObject, removeFromList: deadsnmpObjectIP, addToList: alivesnmpObjectIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true, response })
     } else {
-      alivesnmpObjectIP[foundIndexAlive].count++
+      if (foundIndexAlive === -1) {
+        alivesnmpObjectIP.push({ ip_address: snmpObject.ip_address, oid: snmpObject.oid, count: 1 })
+      } else {
+        alivesnmpObjectIP[foundIndexAlive].count++
+      }
       snmpObject.status = Status.ALIVE
     }
   } catch (err) {

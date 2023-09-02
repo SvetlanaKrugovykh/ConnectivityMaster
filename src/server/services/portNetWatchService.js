@@ -41,7 +41,11 @@ function handleServiceDeadStatus(service) {
     if (loadStatus === Status.ALIVE) {
       handleStatusChange({ ip_address: service, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
     } else {
-      deadServiceIP[foundIndexDead].count++
+      if (foundIndexDead === -1) {
+        deadServiceIP.push({ ip_address: service.ip_address, Port: service.Port, count: 1 })
+      } else {
+        deadServiceIP[foundIndexDead].count++
+      }
       service.status = Status.DEAD
     }
   } catch (err) {
@@ -61,7 +65,11 @@ function handleServiceAliveStatus(service) {
     if (loadStatus === Status.DEAD) {
       handleStatusChange({ ip_address: service, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
     } else {
-      aliveServiceIP[foundIndexAlive].count++
+      if (foundIndexAlive === -1) {
+        aliveServiceIP.push({ ip_address: service.ip_address, Port: service.Port, count: 1 })
+      } else {
+        aliveServiceIP[foundIndexAlive].count++
+      }
       service.status = Status.ALIVE
     }
   } catch (err) {
