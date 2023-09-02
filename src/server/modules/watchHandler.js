@@ -7,7 +7,6 @@ const telegramChatId = process.env.TELEGRAM_CHAT_ID
 function handleStatusChange(args) {
   const {
     ip_address,
-    foundIndex,
     removeFromList,
     addToList,
     fromStatus,
@@ -16,15 +15,35 @@ function handleStatusChange(args) {
     response = ''
   } = args
 
-  const [removedIP] = removeFromList.splice(foundIndex, 1)
-  const existingIndex = addToList.findIndex(item => item.ip_address === removedIP.ip_address)
+  const foundIndex = removeFromList.findIndex(item =>
+    (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid) ||
+    (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port) ||
+    (item.ip_address === ip_address.ip_address)
+  )
+  if (foundIndex !== -1) {
+    removeFromList.splice(foundIndex, 1)
+  }
+
+  const existingIndex = addToList.findIndex(item =>
+    (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid) ||
+    (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port) ||
+    (item.ip_address === ip_address.ip_address)
+  )
 
   console.log(`${new Date().toISOString()}:handleStatusChange: removeFromList, addToList, ${removeFromList.length}, ${addToList.length} service = ${service}`)
 
   if (existingIndex !== -1) {
-    addToList[existingIndex].count = 1
+    addToList[existingIndex].count++
+    ip_address.status = toStatus
+    return
   } else {
-    addToList.push({ ip_address: removedIP.ip_address, count: 1 })
+    addToList.push({
+      ip_address: ip_address?.ip_address,
+      Port: ip_address?.Port || '',
+      oid: ip_address?.oid || '',
+      count: 1,
+    })
+    ip_address.status = toStatus
   }
 
   let resource = ''

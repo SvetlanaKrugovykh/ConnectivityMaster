@@ -27,52 +27,36 @@ async function netWatchPingerProbe(ip_address) {
 }
 
 function handleDeadStatus(ip_address) {
-  const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
-  const loadStatus = ip_address.status.toLowerCase()
-  ip_address.status = Status.DEAD
-
-  if (foundIndexDead !== -1) {
-    deadIP[foundIndexDead].count++
+  try {
+    const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
+    const loadStatus = ip_address.status.toLowerCase()
     if (loadStatus === Status.ALIVE) {
-      handleStatusChange({ ip_address, foundIndex: foundIndexDead, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
-    }
-  } else {
-    const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
-
-    if (foundIndexAlive !== -1) {
-      handleStatusChange({ ip_address, foundIndex: foundIndexAlive, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
+      handleStatusChange({ ip_address, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
     } else {
-      deadIP.push({ ip_address: ip_address.ip_address, count: 1 })
-      if (loadStatus === Status.ALIVE) {
-        handleStatusChange({ ip_address, foundIndex: foundIndexAlive, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
-      }
+      deadIP[foundIndexDead].count++
+      ip_address.status = Status.DEAD
     }
+  } catch (err) {
+    console.error('Error in handleDeadStatus:', err)
   }
 }
 
 function handleAliveStatus(ip_address) {
-  const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
-  const loadStatus = ip_address.status.toLowerCase()
-  ip_address.status = Status.ALIVE
-
-  if (foundIndexAlive !== -1) {
-    aliveIP[foundIndexAlive].count++
+  try {
+    const foundIndexAlive =
+      aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
+    const loadStatus = ip_address.status.toLowerCase()
     if (loadStatus === Status.DEAD) {
-      handleStatusChange({ ip_address, foundIndex: foundIndexAlive, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
-    }
-  } else {
-    const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
-
-    if (foundIndexDead !== -1) {
-      handleStatusChange({ ip_address, foundIndex: foundIndexDead, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
+      handleStatusChange({ ip_address, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
     } else {
-      aliveIP.push({ ip_address: ip_address.ip_address, count: 1 })
-      if (loadStatus === Status.DEAD) {
-        handleStatusChange({ ip_address, foundIndex: foundIndexDead, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
-      }
+      aliveIP[foundIndexAlive].count++
+      ip_address.status = Status.ALIVE
     }
+  } catch (err) {
+    console.error('Error in handleDeadStatus:', err)
   }
 }
+
 
 
 

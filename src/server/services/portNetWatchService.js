@@ -30,55 +30,42 @@ function checkServiceStatus(service) {
 }
 
 function handleServiceDeadStatus(service) {
-  console.log('handleServiceDeadStatus: aliveServiceIP, deadServiceIP', aliveServiceIP.length, deadServiceIP.length)
-  const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
-  const loadStatus = service.status.toLowerCase()
-  service.status = Status.DEAD
+  try {
+    if (!service.ip_address) {
+      console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
+      return
+    }
+    const foundIndexDead = deadServiceIP.findIndex(item => (item.ip_address === service.ip_address && item.Port === service.Port))
 
-  if (foundIndexDead !== -1) {
-    deadServiceIP[foundIndexDead].count++
+    const loadStatus = service.status.toLowerCase()
     if (loadStatus === Status.ALIVE) {
-      handleStatusChange({ ip_address: service, foundIndex: foundIndexDead, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
-    }
-  } else {
-    const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
-
-    if (foundIndexAlive !== -1) {
-      handleStatusChange({ ip_address: service, foundIndex: foundIndexAlive, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
+      handleStatusChange({ ip_address: service, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
     } else {
-      deadServiceIP.push({ service: service.ip_address, count: 1 })
-      if (loadStatus === Status.ALIVE) {
-        handleStatusChange({ ip_address: service, foundIndex: foundIndexAlive, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
-      }
+      deadServiceIP[foundIndexDead].count++
+      service.status = Status.DEAD
     }
+  } catch (err) {
+    console.error('Error in handleServiceDeadStatus:', err)
   }
 }
 
 function handleServiceAliveStatus(service) {
-  if (!service.ip_address) {
-    console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
-    return
-  }
-  const foundIndexAlive = aliveServiceIP.findIndex(item => item.ip_address === service.ip_address)
-  const loadStatus = service.status.toLowerCase()
-  service.status = Status.ALIVE
+  try {
+    if (!service.ip_address) {
+      console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
+      return
+    }
+    const foundIndexAlive = aliveServiceIP.findIndex(item => (item.ip_address === service.ip_address && item.Port === service.Port))
+    const loadStatus = service.status.toLowerCase()
 
-  if (foundIndexAlive !== -1) {
-    aliveServiceIP[foundIndexAlive].count++
     if (loadStatus === Status.DEAD) {
-      handleStatusChange({ ip_address: service, foundIndex: foundIndexAlive, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
-    }
-  } else {
-    const foundIndexDead = deadServiceIP.findIndex(item => item.ip_address === service.ip_address)
-
-    if (foundIndexDead !== -1) {
-      handleStatusChange({ ip_address: service, foundIndex: foundIndexDead, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
+      handleStatusChange({ ip_address: service, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
     } else {
-      aliveServiceIP.push({ service: service.ip_address, count: 1 })
-      if (loadStatus === Status.DEAD) {
-        handleStatusChange({ ip_address: service, foundIndex: foundIndexDead, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
-      }
+      aliveServiceIP[foundIndexAlive].count++
+      service.status = Status.ALIVE
     }
+  } catch (err) {
+    console.error('Error in handleServiceAliveStatus:', err)
   }
 }
 
