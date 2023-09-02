@@ -1,11 +1,7 @@
 const snmp = require('snmp-native')
 
 const testSnmpObjectsList = [
-  { ip_address: '127.0.0.1', description: 'Port24 220V Link Status', oid: '.1.3.6.1.2.1.2.2.1.8.24', min: '', max: '', value: '1', status: 'dead' },
-  { ip_address: '127.0.0.1', description: 'Temperature Status Switch ', oid: '.1.3.6.1.4.1.171.12.11.1.8.1.2.1', min: '18', max: '41', value: '', status: 'dead' },
-  { ip_address: '127.0.0.1', description: 'DDM Temperature Status Port25', oid: '.1.3.6.1.4.1.171.12.72.2.1.1.1.2.25', min: '15', max: '67', value: '', status: 'dead' },
-  { ip_address: '127.0.0.1', description: 'Rx Power DDM_25_UP', oid: '.1.3.6.1.4.1.171.12.72.2.1.1.1.6.25', min: '-12', max: '-11.5', value: '', status: 'dead' },
-  { ip_address: '127.0.0.1', description: 'Tx Power DDM_25_UP', oid: '.1.3.6.1.4.1.171.12.72.2.1.1.1.5.25', min: '2.3', max: '2.9', value: '1', status: 'dead' },
+  { ip_address: '127.0.0.1', description: 'ECO MARKET VLan 616 mac address', oid: '.1.3.6.1.2.1.17.7.1.2.2.1.2.616', min: '', max: '', value: '164.147.76.110.114.120', status: 'dead' },
 ]
 
 async function snmpGet(snmpObject, community = 'public') {
@@ -35,6 +31,7 @@ async function snmpGet(snmpObject, community = 'public') {
 
 function snmpAnswersAnalizer(snmpObject, varbinds) {
   try {
+    console.log('varbinds:', varbinds)
     if (varbinds[0].type === 2 && snmpObject.value !== '') {
       if (varbinds[0].value === Number(snmpObject.value)) {
         return 'Status OK'
@@ -57,6 +54,7 @@ function snmpAnswersAnalizer(snmpObject, varbinds) {
 
 async function main() {
   for (const snmpObject of testSnmpObjectsList) {
+    console.log(`ip:${snmpObject.ip_address} ${snmpObject.description} oid: ${snmpObject.oid}`)
     try {
       const response = await snmpGet(snmpObject)
       console.log(`ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response}`)
