@@ -10,21 +10,43 @@ const Status = {
 const aliveIP = []
 const deadIP = []
 
-async function netWatchPingerProbe(ip_address) {
+function netWatchPingerProbe(ip_address) {
   try {
     const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
-    ping.sys.probe(ip_address.ip_address, async function (isAlive) {
-      if (isAlive) {
-        handleAliveStatus(ip_address)
-      } else {
-        console.log(`${formattedDate} Host at ${ip_address.ip_address} is  not alive`)
-        handleDeadStatus(ip_address)
-      }
+    let failedAttempts = 0
+
+    const probeHost = function () {
+      return new Promise((resolve, reject) => {
+        ping.sys.probe(ip_address.ip_address, function (isAlive) {
+          if (isAlive) {
+            handleAliveStatus(ip_address)
+            resolve()
+          } else {
+            console.log(`${formattedDate} Host at ${ip_address.ip_address} is not alive`)
+            failedAttempts++
+            if (failedAttempts >= 3) {
+              handleDeadStatus(ip_address)
+              resolve()
+            } else {
+              setTimeout(() => {
+                probeHost().then(resolve).catch(reject)
+              }, 5000)
+            }
+          }
+        })
+      })
+    }
+
+    probeHost().catch((err) => {
+      console.error(err)
     })
   } catch (err) {
     console.log(err)
   }
 }
+
+
+
 
 function handleDeadStatus(ip_address) {
   try {
@@ -43,8 +65,7 @@ function handleDeadStatus(ip_address) {
 
 function handleAliveStatus(ip_address) {
   try {
-    const foundIndexAlive =
-      aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
+    const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
     const loadStatus = ip_address.status.toLowerCase()
     if (loadStatus === Status.DEAD) {
       handleStatusChange({ ip_address, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })

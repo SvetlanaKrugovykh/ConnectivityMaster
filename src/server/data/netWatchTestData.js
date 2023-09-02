@@ -3,8 +3,7 @@ const testIpList = [
 ]
 
 const testServiceList = [
-  { ip_address: '127.0.0.1', description: 's1', Port: '8080', status: 'dead' },
-  { ip_address: '91.220.106.16', description: 's1', Port: '3389', status: 'dead' },
+  { ip_address: '127.0.0.1', description: 's1', Port: '8080', status: 'alive' },
 ]
 
 const testSnmpObjectsList = [
