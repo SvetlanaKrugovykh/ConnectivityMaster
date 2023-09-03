@@ -8,10 +8,8 @@ async function runCommand(command, args, value = '') {
     const { stdout, stderr } = await exec(fullCommand)
     if (command === 'snmpwalk') {
       if (stdout.includes(value)) {
-        console.log(`${new Date()}: ${value} stdout: snmpwalk Status OK`)
         return 'Status OK'
       } else {
-        console.log(`${new Date()}: stdout: snmpwalk Status PROBLEM`)
         return 'Status PROBLEM'
       }
     } else {
