@@ -1,5 +1,5 @@
 const snmp = require('snmp-native')
-const { command_OS } = require('../utils/commandsOS')
+const { runCommand } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
 const { handleStatusChange } = require('../modules/watchHandler.js')
 
@@ -13,27 +13,18 @@ const deadsnmpObjectIP = []
 
 async function checksnmpObjectStatus(snmpObject) {
   const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
+  let response = ''
   try {
     if (snmpObject.value.length < 10) {
-      const response = await snmpGet(snmpObject)
-      if (response.includes('Status OK')) {
-        handleSnmpObjectAliveStatus(snmpObject, response)
-      } else {
-        console.log(`${formattedDate} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
-        handleSnmpObjectDeadStatus(snmpObject, response)
-      }
+      response = await snmpGet(snmpObject)
     } else {
-      console.log('snmpObject.value', snmpObject.value)
-      const logData = command_OS('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
-      const lines = logData.toString().split('\n')
-      const stdoutLines = lines.filter(line => line.startsWith("stdout: ")).join('\n')
-      console.log('stdoutLines', stdoutLines)
-      console.log('stdoutLines.includes(snmpObject.value)', stdoutLines.includes(snmpObject.value))
-      if (stdoutLines.includes(snmpObject.value)) {
-        handleSnmpObjectAliveStatus(snmpObject, 'Status OK')
-      } else {
-        handleSnmpObjectDeadStatus(snmpObject, stdoutLines.substring(0, 155))
-      }
+      response = await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid], snmpObject.value)
+    }
+    if (response.includes('Status OK')) {
+      handleSnmpObjectAliveStatus(snmpObject, response)
+    } else {
+      console.log(`${formattedDate} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
+      handleSnmpObjectDeadStatus(snmpObject, response)
     }
   } catch (err) {
     console.log(err)

@@ -1,44 +1,44 @@
-const { command_OS } = require('../utils/commandsOS')
+const { runCommand } = require('../utils/commandsOS')
 
 module.exports.switchOff = async function (abonentId, ipAddress, vlanId) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true
   }
-  const abonentIdТForRules = getAbonentIdТForRules(abonentId)
-  try {
-    const deleteCommand = command_OS('/sbin/ipfw', ['delete', abonentIdТForRules])
-    deleteCommand.on('close', (code) => {
-      if (code === 0) {
-        console.log(`${new Date()}: Deleted rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
-      }
-    })
 
-    const addCommand = command_OS('/sbin/ipfw', ['add', abonentIdТForRules, 'deny', 'ip', 'from', `${ipAddress}/32`, 'to', 'any', 'via', `vlan${vlanId}`, 'in'])
-    addCommand.on('close', (code) => {
-      if (code === 0) {
-        console.log(`${new Date()}: Added rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
-      }
-    })
+  const abonentIdТForRules = getAbonentIdТForRules(abonentId)
+
+  try {
+    const deleteCommand = await runCommand('/sbin/ipfw', ['delete', abonentIdТForRules])
+    if (deleteCommand.stdout) {
+      console.log(`${new Date()}: Deleted rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
+    }
+
+    const addCommand = await runCommand('/sbin/ipfw', ['add', abonentIdТForRules, 'deny', 'ip', 'from', `${ipAddress}/32`, 'to', 'any', 'via', `vlan${vlanId}`, 'in'])
+    if (addCommand.stdout) {
+      console.log(`${new Date()}: Added rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
+    }
 
     return true
   } catch (error) {
-    console.error('Error executing commands:', error)
+    console.error('Error executing commands:', error.message)
     return false
   }
 }
+
 
 module.exports.switchOn = async function (abonentId) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true
   }
   const abonentIdТForRules = getAbonentIdТForRules(abonentId)
+
   try {
-    const deleteCommand = command_OS('/sbin/ipfw', ['delete', abonentIdТForRules])
+    const deleteCommand = await runCommand('/sbin/ipfw', ['delete', abonentIdТForRules])
 
     await new Promise((resolve, reject) => {
-      deleteCommand.on('exit', (code) => {
+      deleteCommand.on('close', (code) => {
         if (code === 0) {
-          console.log(`${new Date()}: Deleted rule ${abonentId} ->  ${abonentIdТForRules} successfully.`)
+          console.log(`${new Date()}: Deleted rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
           resolve()
         } else {
           const errorMessage = `Error deleting rule ${abonentId} -> ${abonentIdТForRules}, exit code: ${code}`
@@ -55,10 +55,11 @@ module.exports.switchOn = async function (abonentId) {
 
     return true
   } catch (error) {
-    console.error(`${new Date()}: Error executing commands:`, error)
+    console.error(`${new Date()}: Error executing commands:`, error.message)
     return false
   }
 }
+
 
 function getAbonentIdТForRules(abonentId) {
   const nAbonentId = Number(abonentId)

@@ -1,25 +1,25 @@
-const { spawn } = require('child_process')
+const util = require('util')
+const exec = util.promisify(require('child_process').exec)
 
-function command_OS(command, args) {
-  const child = spawn(command, args)
+async function runCommand(command, args, value = '') {
+  const fullCommand = `${command} ${args.join(' ')}`
 
-  child.stdout.on('data', (data) => {
-    if (command !== 'snmpwalk') {
-      console.log(`${new Date()}: stdout: ${data}`)
+  try {
+    const { stdout, stderr } = await exec(fullCommand)
+    if (command === 'snmpwalk') {
+      if (stdout.includes(value)) {
+        return 'Status OK'
+      } else {
+        return 'Status PROBLEM'
+      }
+    } else {
+      console.log(`${new Date()}: stdout: ${stdout}`)
+      console.error(`${new Date()}: stderr: ${stderr}`) // Вывод stderr для всех команд, кроме snmpwalk
+      return { stdout, stderr }
     }
-  })
-
-  child.stderr.on('data', (data) => {
-    console.error(`${new Date()}: stderr: ${data}`)
-  })
-
-  child.on('close', (code) => {
-    if (command !== 'snmpwalk') {
-      console.log(`${new Date()}: child process exited with code ${code}`)
-    }
-  })
-
-  return child
+  } catch (error) {
+    throw new Error(`Error of command execution: ${error.message}`)
+  }
 }
 
-module.exports = { command_OS }
+module.exports = { runCommand }
