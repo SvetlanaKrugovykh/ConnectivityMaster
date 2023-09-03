@@ -1,3 +1,4 @@
+const snmp = require('net-snmp')
 const { command_OS } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
 const { handleStatusChange } = require('../modules/watchHandler.js')
@@ -33,14 +34,6 @@ async function checksnmpObjectStatus(snmpObject) {
     }
   } catch (err) {
     console.log(err)
-  }
-}
-
-function responseProcessing(response, snmpObject) {
-  if (response.includes(snmpObject.value)) {
-    handleSnmpObjectAliveStatus(snmpObject, 'Status OK')
-  } else {
-    handleSnmpObjectDeadStatus(snmpObject, response)
   }
 }
 
