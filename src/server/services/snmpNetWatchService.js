@@ -1,4 +1,4 @@
-const snmp = require('net-snmp')
+const snmp = require('snmp-native')
 const { command_OS } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
 const { handleStatusChange } = require('../modules/watchHandler.js')
