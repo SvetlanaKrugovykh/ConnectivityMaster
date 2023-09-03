@@ -26,6 +26,9 @@ async function checksnmpObjectStatus(snmpObject) {
       const logData = command_OS('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
       const lines = logData.toString().split('\n')
       const stdoutLines = lines.filter(line => line.startsWith("stdout: ")).join('\n')
+      console.log('snmpObject.value', snmpObject.value)
+      console.log('stdoutLines', stdoutLines)
+      console.log('stdoutLines.includes(snmpObject.value)', stdoutLines.includes(snmpObject.value))
       if (stdoutLines.includes(snmpObject.value)) {
         handleSnmpObjectAliveStatus(snmpObject, 'Status OK')
       } else {

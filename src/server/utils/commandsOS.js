@@ -4,7 +4,9 @@ function command_OS(command, args) {
   const child = spawn(command, args)
 
   child.stdout.on('data', (data) => {
-    console.log(`${new Date()}: stdout: ${data}`)
+    if (command !== 'snmpwalk') {
+      console.log(`${new Date()}: stdout: ${data}`)
+    }
   })
 
   child.stderr.on('data', (data) => {
@@ -12,7 +14,9 @@ function command_OS(command, args) {
   })
 
   child.on('close', (code) => {
-    console.log(`${new Date()}: child process exited with code ${code}`)
+    if (command !== 'snmpwalk') {
+      console.log(`${new Date()}: child process exited with code ${code}`)
+    }
   })
 
   return child
