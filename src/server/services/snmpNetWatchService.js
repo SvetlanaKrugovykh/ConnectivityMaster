@@ -1,4 +1,4 @@
-const snmp = require('snmp-native')
+const { command_OS } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
 const { handleStatusChange } = require('../modules/watchHandler.js')
 
@@ -13,18 +13,37 @@ const deadsnmpObjectIP = []
 async function checksnmpObjectStatus(snmpObject) {
   const formattedDate = new Date().toISOString().replace('T', ' ').slice(0, 19)
   try {
-    const response = await snmpGet(snmpObject)
-    if (response.includes('Status OK')) {
-      handleSnmpObjectAliveStatus(snmpObject, response)
+    if (snmpObject.value.length < 10) {
+      const response = await snmpGet(snmpObject)
+      if (response.includes('Status OK')) {
+        handleSnmpObjectAliveStatus(snmpObject, response)
+      } else {
+        console.log(`${formattedDate} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
+        handleSnmpObjectDeadStatus(snmpObject, response)
+      }
     } else {
-      console.log(`${formattedDate} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
-      handleSnmpObjectDeadStatus(snmpObject, response)
+      const logData = command_OS('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
+      const lines = logData.toString().split('\n')
+      const stdoutLines = lines.filter(line => line.startsWith("stdout: ")).join('\n')
+      if (stdoutLines.includes(snmpObject.value)) {
+        handleSnmpObjectAliveStatus(snmpObject, 'Status OK')
+      } else {
+        handleSnmpObjectDeadStatus(snmpObject, stdoutLines.substring(0, 155))
+      }
     }
-
   } catch (err) {
     console.log(err)
   }
 }
+
+function responseProcessing(response, snmpObject) {
+  if (response.includes(snmpObject.value)) {
+    handleSnmpObjectAliveStatus(snmpObject, 'Status OK')
+  } else {
+    handleSnmpObjectDeadStatus(snmpObject, response)
+  }
+}
+
 
 function handleSnmpObjectDeadStatus(snmpObject, response) {
   if (!snmpObject.ip_address) {

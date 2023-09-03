@@ -1,23 +1,4 @@
-const { spawn } = require('child_process')
-const { get } = require('http')
-
-function ipfw(args) {
-  const child = spawn('/sbin/ipfw', args)
-
-  child.stdout.on('data', (data) => {
-    console.log(`${new Date()}: stdout: ${data}`)
-  })
-
-  child.stderr.on('data', (data) => {
-    console.error(`${new Date()}: stderr: ${data}`)
-  })
-
-  child.on('close', (code) => {
-    console.log(`${new Date()}: child process exited with code ${code}`)
-  })
-
-  return child
-}
+const { command_OS } = require('../utils/commandsOS')
 
 module.exports.switchOff = async function (abonentId, ipAddress, vlanId) {
   if (process.env.PLATFORM !== 'freebsd') {
@@ -25,14 +6,14 @@ module.exports.switchOff = async function (abonentId, ipAddress, vlanId) {
   }
   const abonentIdТForRules = getAbonentIdТForRules(abonentId)
   try {
-    const deleteCommand = ipfw(['delete', abonentIdТForRules])
+    const deleteCommand = command_OS('/sbin/ipfw', ['delete', abonentIdТForRules])
     deleteCommand.on('close', (code) => {
       if (code === 0) {
         console.log(`${new Date()}: Deleted rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
       }
     })
 
-    const addCommand = ipfw(['add', abonentIdТForRules, 'deny', 'ip', 'from', `${ipAddress}/32`, 'to', 'any', 'via', `vlan${vlanId}`, 'in'])
+    const addCommand = command_OS('/sbin/ipfw', ['add', abonentIdТForRules, 'deny', 'ip', 'from', `${ipAddress}/32`, 'to', 'any', 'via', `vlan${vlanId}`, 'in'])
     addCommand.on('close', (code) => {
       if (code === 0) {
         console.log(`${new Date()}: Added rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
@@ -52,7 +33,7 @@ module.exports.switchOn = async function (abonentId) {
   }
   const abonentIdТForRules = getAbonentIdТForRules(abonentId)
   try {
-    const deleteCommand = ipfw(['delete', abonentIdТForRules])
+    const deleteCommand = command_OS('/sbin/ipfw', ['delete', abonentIdТForRules])
 
     await new Promise((resolve, reject) => {
       deleteCommand.on('exit', (code) => {
