@@ -63,13 +63,20 @@ function handleSnmpObjectAliveStatus(snmpObject, response) {
   try {
     const foundIndexAlive = alivesnmpObjectIP.findIndex(item => (item.ip_address === snmpObject.ip_address && item.oid === snmpObject.oid))
     const loadStatus = snmpObject.status.toLowerCase()
+    if (snmpObject.value.length > 10) {
+      console.log(`${new Date().toISOString()} ${loadStatus}; ${loadStatus === Status.DEAD} ip:${snmpObject.ip_address} ${snmpObject.description} response: ${response} oid:${snmpObject.oid}`)
+    }
     if (loadStatus === Status.DEAD) {
+      if (snmpObject.value.length > 10) console.log('!!!loadStatus === Status.DEAD)')
       handleStatusChange({ ip_address: snmpObject, removeFromList: deadsnmpObjectIP, addToList: alivesnmpObjectIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true, response })
     } else {
+      if (snmpObject.value.length > 10) console.log('!!! ===else == loadStatus === Status.DEAD)')
       if (foundIndexAlive === -1) {
         alivesnmpObjectIP.push({ ip_address: snmpObject.ip_address, oid: snmpObject.oid, count: 1 })
+        if (snmpObject.value.length > 10) console.log('!!! PUSH == )')
       } else {
         alivesnmpObjectIP[foundIndexAlive].count++
+        if (snmpObject.value.length > 10) console.log('!!! COUNT ++== )')
       }
       snmpObject.status = Status.ALIVE
     }
