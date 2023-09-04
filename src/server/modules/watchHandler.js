@@ -14,27 +14,23 @@ async function handleStatusChange(args) {
     service = false,
     response = ''
   } = args
-  const a1 = (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid)
-  const a2 = (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port)
-  const a3 = (item.ip_address === ip_address.ip_address)
-  const a4 = (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid) || (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port) || (item.ip_address === ip_address.ip_address)
-
-  console.log(`!!!!!${new Date().toISOString()}:handleStatusChange: removeFromList, addToList, ${removeFromList.length}, ${addToList.length} service = ${service}`)
-  console.log(`!!!!!${new Date().toISOString()}:handleStatusChange: a1, a2, a3, a4, ${ip_address.oid} ${ip_address.value}${a1}, ${a2}, ${a3}, ${a4}`)
 
   const foundIndex = removeFromList.findIndex(item =>
-    (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid) ||
-    (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port) ||
-    (item.ip_address === ip_address.ip_address)
+  (item.ip_address === ip_address.ip_address &&
+    (ip_address.oid.toString().length > 0 ? item.oid === ip_address.oid : true) &&
+    (ip_address.Port.toString().length > 0 ? item.Port === ip_address.Port : true)
   )
+  )
+
   if (foundIndex !== -1) {
-    removeFromList.splice(foundIndex, 1)
+    removeFromList.splice(foundIndex, 1);
   }
 
   const existingIndex = addToList.findIndex(item =>
-    (item.ip_address === ip_address.ip_address && item.oid === ip_address.oid) ||
-    (item.ip_address === ip_address.ip_address && item.Port === ip_address.Port) ||
-    (item.ip_address === ip_address.ip_address)
+  (item.ip_address === ip_address.ip_address &&
+    (ip_address.oid.toString().length > 0 ? item.oid === ip_address.oid : true) &&
+    (ip_address.Port.toString().length > 0 ? item.Port === ip_address.Port : true)
+  )
   )
 
   console.log(`${new Date().toISOString()}:handleStatusChange: removeFromList, addToList, ${removeFromList.length}, ${addToList.length} service = ${service}`)
@@ -55,7 +51,16 @@ async function handleStatusChange(args) {
 
   let resource = ''
   let msg = ''
-  if (service === true) { resource = `Service Port:${ip_address.Port}` } else { resource = 'Host' }
+  if (service === true) {
+    if (ip_address.Port === undefined) {
+      resource = `Snmp oid:${ip_address.oid}<=>${ip_address.value}`
+    } else {
+      resource = `Service Port:${ip_address.Port}`
+    }
+  } else {
+    resource = 'Host'
+  }
+
   if (response === '') {
     msg = `${resource} ${ip_address.ip_address} (${ip_address.description}) ⇆ from ${fromStatus} to ${toStatus}`
     sendReqToDB('__SaveStatusChangeToDb__', `${ip_address.ip_address}#${fromStatus}#${toStatus}#${service}#`, '')
