@@ -29,7 +29,7 @@ function checkServiceStatus(service) {
   }
 }
 
-function handleServiceDeadStatus(service) {
+async function handleServiceDeadStatus(service) {
   try {
     if (!service.ip_address) {
       console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
@@ -39,7 +39,7 @@ function handleServiceDeadStatus(service) {
 
     const loadStatus = service.status.toLowerCase()
     if (loadStatus === Status.ALIVE) {
-      handleStatusChange({ ip_address: service, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
+      await handleStatusChange({ ip_address: service, removeFromList: aliveServiceIP, addToList: deadServiceIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD, service: true })
     } else {
       if (foundIndexDead === -1) {
         deadServiceIP.push({ ip_address: service.ip_address, Port: service.Port, count: 1 })
@@ -53,7 +53,7 @@ function handleServiceDeadStatus(service) {
   }
 }
 
-function handleServiceAliveStatus(service) {
+async function handleServiceAliveStatus(service) {
   try {
     if (!service.ip_address) {
       console.log('handleServiceAliveStatus: service.ip_address is undefined', service)
@@ -63,7 +63,7 @@ function handleServiceAliveStatus(service) {
     const loadStatus = service.status.toLowerCase()
 
     if (loadStatus === Status.DEAD) {
-      handleStatusChange({ ip_address: service, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
+      await handleStatusChange({ ip_address: service, removeFromList: deadServiceIP, addToList: aliveServiceIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE, service: true })
     } else {
       if (foundIndexAlive === -1) {
         aliveServiceIP.push({ ip_address: service.ip_address, Port: service.Port, count: 1 })

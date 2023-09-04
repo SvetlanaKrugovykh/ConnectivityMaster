@@ -4,7 +4,7 @@ const { sendReqToDB, sendToChat } = require('./to_local_DB.js')
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID
 
-function handleStatusChange(args) {
+async function handleStatusChange(args) {
   const {
     ip_address,
     removeFromList,

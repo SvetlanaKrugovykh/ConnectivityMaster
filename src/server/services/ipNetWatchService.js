@@ -48,12 +48,12 @@ function netWatchPingerProbe(ip_address) {
 
 
 
-function handleDeadStatus(ip_address) {
+async function handleDeadStatus(ip_address) {
   try {
     const foundIndexDead = deadIP.findIndex(item => item.ip_address === ip_address.ip_address)
     const loadStatus = ip_address.status.toLowerCase()
     if (loadStatus === Status.ALIVE) {
-      handleStatusChange({ ip_address, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
+      await handleStatusChange({ ip_address, removeFromList: aliveIP, addToList: deadIP, fromStatus: Status.ALIVE, toStatus: Status.DEAD })
     } else {
       if (foundIndexDead === -1) {
         deadIP.push({ ip_address: ip_address.ip_address, count: 1 })
@@ -67,12 +67,12 @@ function handleDeadStatus(ip_address) {
   }
 }
 
-function handleAliveStatus(ip_address) {
+async function handleAliveStatus(ip_address) {
   try {
     const foundIndexAlive = aliveIP.findIndex(item => item.ip_address === ip_address.ip_address)
     const loadStatus = ip_address.status.toLowerCase()
     if (loadStatus === Status.DEAD) {
-      handleStatusChange({ ip_address, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
+      await handleStatusChange({ ip_address, removeFromList: deadIP, addToList: aliveIP, fromStatus: Status.DEAD, toStatus: Status.ALIVE })
     } else {
       if (foundIndexAlive === -1) {
         aliveIP.push({ ip_address: ip_address.ip_address, count: 1 })
