@@ -35,24 +35,9 @@ module.exports.switchOn = async function (abonentId) {
   try {
     const deleteCommand = await runCommand('/sbin/ipfw', ['delete', abonentIdТForRules])
 
-    await new Promise((resolve, reject) => {
-      deleteCommand.on('close', (code) => {
-        if (code === 0) {
-          console.log(`${new Date()}: Deleted rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
-          resolve()
-        } else {
-          const errorMessage = `Error deleting rule ${abonentId} -> ${abonentIdТForRules}, exit code: ${code}`
-          console.error(`${new Date()}: ${errorMessage}`)
-          reject(new Error(errorMessage))
-        }
-      })
-
-      deleteCommand.on('error', (error) => {
-        console.error(`${new Date()}: Error executing delete command:`, error)
-        reject(error)
-      })
-    })
-
+    if (deleteCommand.stdout) {
+      console.log(`${new Date()}: Added rule ${abonentId} -> ${abonentIdТForRules} successfully.`)
+    }
     return true
   } catch (error) {
     console.error(`${new Date()}: Error executing commands:`, error.message)
