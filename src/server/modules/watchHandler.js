@@ -15,23 +15,26 @@ async function handleStatusChange(args) {
     response = ''
   } = args
 
-  const foundIndex = removeFromList.findIndex(item =>
-  (item.ip_address === ip_address.ip_address &&
-    (ip_address.oid.toString().length > 0 ? item.oid === ip_address.oid : true) &&
-    (ip_address.Port.toString().length > 0 ? item.Port === ip_address.Port : true)
-  )
-  )
+  const foundIndex = removeFromList.findIndex(item => {
+    const isMatchingIp = item.ip_address === ip_address.ip_address
+    const isMatchingOid = ip_address.oid && item.oid === ip_address.oid.toString()
+    const isMatchingPort = ip_address.Port && item.Port === ip_address.Port.toString()
+
+    return (isMatchingIp && (isMatchingOid || isMatchingPort)) || (!ip_address.oid && !ip_address.Port && isMatchingIp)
+  })
 
   if (foundIndex !== -1) {
-    removeFromList.splice(foundIndex, 1);
+    removeFromList.splice(foundIndex, 1)
   }
 
-  const existingIndex = addToList.findIndex(item =>
-  (item.ip_address === ip_address.ip_address &&
-    (ip_address.oid.toString().length > 0 ? item.oid === ip_address.oid : true) &&
-    (ip_address.Port.toString().length > 0 ? item.Port === ip_address.Port : true)
-  )
-  )
+  const existingIndex = addToList.findIndex(item => {
+    const isMatchingIp = item.ip_address === ip_address.ip_address
+    const isMatchingOid = ip_address.oid && item.oid === ip_address.oid.toString()
+    const isMatchingPort = ip_address.Port && item.Port === ip_address.Port.toString()
+
+    return (isMatchingIp && (isMatchingOid || isMatchingPort)) || (!ip_address.oid && !ip_address.Port && isMatchingIp)
+  })
+
 
   console.log(`${new Date().toISOString()}:handleStatusChange: removeFromList, addToList, ${removeFromList.length}, ${addToList.length} service = ${service}`)
 
