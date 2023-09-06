@@ -13,8 +13,8 @@ async function runCommand(command, args, value = '') {
         return 'Status PROBLEM'
       }
     } else {
-      console.log(`${new Date()}: runCommandStdout: ${stdout}`)
-      console.error(`${new Date()}: runCommandStderr: ${stderr}`) // Вывод stderr для всех команд, кроме snmpwalk
+      if (stdout.length > 0) console.log(`${new Date()}: ${command} out: ${stdout}`)
+      if (stderr.length > 0) console.error(`${new Date()}: ${command} err: ${stderr}`)
       return { stdout, stderr }
     }
   } catch (error) {
