@@ -57,12 +57,12 @@ async function processLogsFile(logFile) {
         'dstIp': fields[5],
         'dstPort': fields[6],
       }
-      currentDataSize = JSON.stringify(data[portionIndex]).length;
+      currentDataSize = JSON.stringify(data[portionIndex]).length
       if (currentDataSize + JSON.stringify(lineData).length <= 1024 * 1024) {
-        data[portionIndex].push(lineData);
+        data[portionIndex].push(lineData)
       } else {
-        portionIndex++;
-        data[portionIndex] = [lineData];
+        portionIndex++
+        data[portionIndex].push(lineData)
       }
       localData.push(lineData)
     }
