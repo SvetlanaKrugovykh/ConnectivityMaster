@@ -38,7 +38,7 @@ async function processLogsFile(logFile) {
       crlfDelay: Infinity,
     })
 
-    let data = []
+    let data = [[]]
     const localData = []
     let date, hour, firstLine = true
     let portionIndex = 0
