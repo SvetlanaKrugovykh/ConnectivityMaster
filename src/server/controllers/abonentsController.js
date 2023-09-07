@@ -16,8 +16,8 @@ module.exports.abonentSwitchOff = async function (request, _reply) {
 }
 
 module.exports.abonentSwitchOn = async function (request, _reply) {
-  const { abonentId } = request.body
-  const message = await abonentsService.switchOn(abonentId)
+  const { abonentId, ipAddress } = request.body
+  const message = await abonentsService.switchOn(abonentId, ipAddress)
 
   if (!message) {
     throw new HttpError[501]('Command execution failed')
