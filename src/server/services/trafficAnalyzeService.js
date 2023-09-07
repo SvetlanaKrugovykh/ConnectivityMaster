@@ -31,7 +31,6 @@ module.exports.macSaving = async function () {
 async function processLogsFile(logFile) {
 
   const subnet = logFile.includes('168') ? '168' : '10'
-  const data = []
 
   try {
     const rl = readline.createInterface({
@@ -39,7 +38,11 @@ async function processLogsFile(logFile) {
       crlfDelay: Infinity,
     })
 
+    let data = []
+    const localData = []
     let date, hour, firstLine = true
+    let portionIndex = 0
+    let currentDataSize = 0
 
     for await (const line of rl) {
       const fields = line.split(/\s+/)
@@ -54,13 +57,21 @@ async function processLogsFile(logFile) {
         'dstIp': fields[5],
         'dstPort': fields[6],
       }
-      data.push(lineData)
+      currentDataSize = JSON.stringify(data[portionIndex]).length;
+      if (currentDataSize + JSON.stringify(lineData).length <= 1024 * 1024) {
+        data[portionIndex].push(lineData);
+      } else {
+        portionIndex++;
+        data[portionIndex] = [lineData];
+      }
+      localData.push(lineData)
     }
 
     rl.close()
-
-    if (process.env.SAVE_TO_FIRESTORE === 'true') processAndSaveData(serverId, subnet, data, date, hour)
-    if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB('__traffic__', serverId, subnet, data, date, hour)
+    for (let i = 0; i < data.length; i++) {
+      if (process.env.SAVE_TO_FIRESTORE === 'true') await processAndSaveData(serverId, subnet, data[i], date, hour, i)
+    }
+    if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB('__traffic__', serverId, subnet, localData, date, hour)
     return ('Data saved to Firestore successfully.')
   } catch (err) {
     console.error('Error processing file:', err)
@@ -97,10 +108,10 @@ async function processMacsFile(logFile) {
   }
 }
 
-async function processAndSaveData(serverId, subnet, data, date, hour) {
+async function processAndSaveData(serverId, subnet, data, date, hour, portionIndex) {
   try {
     const collectionRef = firestore.collection('logs')
-    const documentId = `${serverId}-${subnet}-${date}_${hour}`
+    const documentId = `${serverId}-${subnet}-${date}_${hour}_part${portionIndex}`
     const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hour}:59:59`))
     const newData = { datedoc, hour, subnet, serverId, logs: data }
 
