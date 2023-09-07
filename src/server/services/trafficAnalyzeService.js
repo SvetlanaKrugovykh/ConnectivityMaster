@@ -64,17 +64,22 @@ async function processLogsFile(logFile) {
         data[portionIndex].push(lineData)
       } else {
         portionIndex++
+        currentDataSize = lineDataString
+        if (!data[portionIndex]) data[portionIndex] = []
         data[portionIndex].push(lineData)
       }
       localData.push(lineData)
     }
 
     rl.close()
-    for (let i = 0; i < data.length; i++) {
-      if (process.env.SAVE_TO_FIRESTORE === 'true') await processAndSaveData(serverId, subnet, data[i], date, hour, i)
+
+    if (process.env.SAVE_TO_FIRESTORE === 'true') {
+      for (let i = 0; i < data.length; i++) {
+        await processAndSaveData(serverId, subnet, data[i], date, hour, i)
+      }
     }
     if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB('__traffic__', serverId, subnet, localData, date, hour)
-    return ('Data saved to Firestore successfully.')
+    return ('Data saved successfully.')
   } catch (err) {
     console.error('Error processing file:', err)
   }
