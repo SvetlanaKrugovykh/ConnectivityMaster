@@ -43,6 +43,7 @@ async function processLogsFile(logFile) {
     let date, hour, firstLine = true
     let portionIndex = 0
     let currentDataSize = 0
+    let lineDataString = 0
 
     for await (const line of rl) {
       const fields = line.split(/\s+/)
@@ -57,8 +58,9 @@ async function processLogsFile(logFile) {
         'dstIp': fields[5],
         'dstPort': fields[6],
       }
-      currentDataSize = JSON.stringify(data[portionIndex]).length
-      if (currentDataSize + JSON.stringify(lineData).length <= 1024 * 1024) {
+      lineDataString = JSON.stringify(lineData).length
+      currentDataSize += lineDataString
+      if (currentDataSize <= 1024 * 1024) {
         data[portionIndex].push(lineData)
       } else {
         portionIndex++
