@@ -75,7 +75,7 @@ async function processLogsFile(logFile) {
 
     if (process.env.SAVE_TO_FIRESTORE === 'true') {
       for (let i = 0; i < data.length; i++) {
-        await processAndSaveData(serverId, subnet, data[i], date, hour, i)
+        if (data[i] !== undefined) await processAndSaveData(serverId, subnet, data[i], date, hour, i)
       }
     }
     if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB('__traffic__', serverId, subnet, localData, date, hour)
