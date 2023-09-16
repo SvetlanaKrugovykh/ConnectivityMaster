@@ -9,7 +9,7 @@ module.exports.getInvoice = async function (request, reply) {
     const fullFileName_ = fullFileName.toString().replace(/\\\\/g, '\\')
 
     if (fullFileName_ === null) {
-      throw new HttpError[501]('Command execution failed')
+      throw new HttpError[501](`Problem with invoice generation for ${ipAddress}`)
     }
     reply.header('Content-Type', 'application/pdf')
     const fileData = await fs.readFileSync(fullFileName_)
@@ -28,6 +28,6 @@ module.exports.abonentServiceContinue = async function (request, _reply) {
   }
 
   return {
-    message: `Abonent switched on ${addTag}`
+    message: `Service continued for ${ipAddress}`
   }
 }
