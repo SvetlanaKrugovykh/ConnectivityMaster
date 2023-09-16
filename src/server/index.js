@@ -12,6 +12,10 @@ const redirectServer = Fastify({
   trustProxy: true
 })
 
+const redirectApiServer = Fastify({
+  trustProxy: true,
+})
+
 redirectServer.register(httpProxy, {
   upstream: process.env.UPSTREAM_URL,
   prefix: '/',
@@ -35,8 +39,11 @@ app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
 
 redirectServer.register(redirectPlugin)
 
+redirectApiServer.register(redirectPlugin)
+redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/redirect-api' })
+
 if (process.env.NETWATCHING_ENABLED === 'true') {
   netWatchStarter()
 }
 
-module.exports = { app, redirectServer }
+module.exports = { app, redirectServer, redirectApiServer }

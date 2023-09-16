@@ -40,6 +40,10 @@ async function netWatchStarter() {
     }
   }, servicesPoolingInterval)
 
+  if (process.env.SNMP_POOLING_ENABLE !== 'true') {
+    return
+  }
+
   setInterval(() => {
     try {
       snmpObjectsList.forEach(snmpObject => {
