@@ -4,8 +4,7 @@ const redirectApiService = require('../services/redirectApiService')
 
 module.exports.getInvoice = async function (request, reply) {
   try {
-    //const ipAddress = request.ip    //TODO: ipAddress
-    const ipAddress = '10.100.92.234' //TODO: DROP THIS
+    const ipAddress = request.ip
     const fullFileName = await redirectApiService.getInvoice(ipAddress)
     const fullFileName_ = fullFileName.toString().replace(/\\\\/g, '\\')
 
