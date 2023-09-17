@@ -1,6 +1,4 @@
 const redirectApiController = require('../controllers/redirectApiController')
-//const redirectGuard = require('../guards/is-authorized.guard')
-//const abonentSwitchOffSchema = require('../schemas/abonent-switch-off.schema')ipAddress
 
 module.exports = (fastify, _opts, done) => {
   fastify.route({

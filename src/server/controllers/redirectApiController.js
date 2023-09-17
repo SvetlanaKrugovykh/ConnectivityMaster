@@ -4,7 +4,8 @@ const redirectApiService = require('../services/redirectApiService')
 
 module.exports.getInvoice = async function (request, reply) {
   try {
-    const ipAddress = request.ip
+    let ipAddress = request.ip
+    if (REDIRECT_API_TEST_MODE === 'true') ipAddress = process.env.REDIRECT_API_TEST_IP
     const fullFileName = await redirectApiService.getInvoice(ipAddress)
     const fullFileName_ = fullFileName.toString().replace(/\\\\/g, '\\')
 
