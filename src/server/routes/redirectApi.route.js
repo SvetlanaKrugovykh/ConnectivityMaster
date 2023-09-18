@@ -2,7 +2,7 @@ const redirectApiController = require('../controllers/redirectApiController')
 
 module.exports = (fastify, _opts, done) => {
   fastify.route({
-    method: 'POST',
+    method: 'GET',
     url: '/get-invoice/',
     handler: redirectApiController.getInvoice,
     preHandler: [
