@@ -1,10 +1,12 @@
 const axios = require(`axios`)
-const URL = process.env.URL
+const USUAL_URL = process.env.URL
+const LOG_URL = process.env.LOG_URL
 const AUTH_TOKEN = process.env.AUTH_TOKEN
 
 async function sendReqToDB(reqType, data, _text) {
 
-  let dataString = JSON.stringify(data);
+  let dataString = JSON.stringify(data)
+  const URL = reqType === '__traffic__' ? LOG_URL : USUAL_URL
 
   try {
     const response = await axios({
@@ -21,13 +23,13 @@ async function sendReqToDB(reqType, data, _text) {
     });
     if (!response.status == 200) {
       return null
+    }
+
+    if (reqType === '__GetClientPersData__' || reqType === '__GetIpAddressesForWatching__') {
+      return response.data
     } else {
-      if (reqType === '__GetClientPersData__' || reqType === '__GetIpAddressesForWatching__') {
-        return response.data
-      } else {
-        let answer = response.data.toString()
-        return answer;
-      }
+      let answer = response.data.toString()
+      return answer;
     }
 
   } catch (err) {
