@@ -55,17 +55,19 @@ async function getReceipt(ipAddress) {
       let fileFullName = `${TEMP_CATALOG}__${ipAddress}__.pdf`
       if (!response.status == 200) {
         console.log(`${ipAddress} data not found.`)
-      } else {
-        try {
-          response.data.pipe(fs.createWriteStream(fileFullName))
-          console.log(`File ${fileFullName} saved.`)
-          return fileFullName
-        } catch (err) {
-          console.log(err)
-          console.log('File not saved!!!')
-          return null
-        }
+        return null
       }
+      try {
+        await response.data.pipe(fs.createWriteStream(fileFullName))
+        console.log(`File ${fileFullName} saved.`)
+        return fileFullName
+      } catch (err) {
+        console.error(err)
+        console.log(`${ipAddress} File not saved!!!.`)
+        return null
+      }
+
+
     }
   } catch (err) {
     console.log(`${ipAddress} data not found.`)
