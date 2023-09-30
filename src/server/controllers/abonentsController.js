@@ -27,3 +27,29 @@ module.exports.abonentSwitchOn = async function (request, _reply) {
     message: `Abonent switched on ${addTag}`
   }
 }
+
+module.exports.abonentFwdOff = async function (request, _reply) {
+  const { abonentId, ipAddress, vlanId } = request.body
+  const message = await abonentsService.fwdOff(abonentId, ipAddress, vlanId)
+
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    message: `Abonent forwarded off ${addTag}`
+  }
+}
+
+module.exports.abonentFwdOn = async function (request, _reply) {
+  const { abonentId, ipAddress } = request.body
+  const message = await abonentsService.fwdOn(abonentId, ipAddress)
+
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    message: `Abonent forwarded on ${addTag}`
+  }
+}
