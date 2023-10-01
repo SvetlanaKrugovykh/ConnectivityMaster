@@ -132,7 +132,11 @@ async function processAndSaveData(serverId, subnet, data, date, hour, portionInd
 
 async function processAndSaveDataToLocalDB(type, serverId, subnet, data, date, hour) {
   try {
-    const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hour}:59:59`))
+    const year = parseInt(currentDate.substring(0, 4))
+    const month = parseInt(currentDate.substring(5, 7)) - 1
+    const day = parseInt(currentDate.substring(8, 10))
+    const hourValue = parseInt(hour)
+    const datedoc = admin.firestore.Timestamp.fromDate(new Date(year, month, day, hourValue, 59, 59))
     const newData = { datedoc, hour, subnet, serverId, logs: data }
     await sendReqToDB(type, newData, '')
   } catch (err) {
