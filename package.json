@@ -20,10 +20,13 @@
 		"fastify-helmet": "^6.0.0",
 		"fastify-multipart": "^5.4.0",
 		"firebase-admin": "^11.10.1",
+		"fs": "^0.0.1-security",
 		"http-errors": "^2.0.0",
+		"https": "^1.0.0",
 		"ip-range-check": "^0.2.0",
 		"jsonwebtoken": "^9.0.1",
 		"net": "^1.0.2",
+		"path": "^0.12.7",
 		"ping": "^0.4.4",
 		"snmp-native": "^1.2.0"
 	}

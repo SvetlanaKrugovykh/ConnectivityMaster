@@ -1,19 +1,28 @@
 const Fastify = require('fastify')
+const https = require('https')
 const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const httpProxy = require('@fastify/http-proxy')
 const { netWatchStarter } = require('./services/netWatchService')
+const fs = require('fs')
+const path = require('path')
+
+const credentials = {
+  key: fs.readFileSync(path.resolve(__dirname, '../../path/to/key.pem')),
+  cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate.pem'))
+}
 
 const app = Fastify({
   trustProxy: true
 })
 
 const redirectServer = Fastify({
-  trustProxy: true
+  trustProxy: true,
 })
 
 const redirectApiServer = Fastify({
   trustProxy: true,
+  https: credentials
 })
 
 redirectServer.register(httpProxy, {
@@ -46,4 +55,4 @@ if (process.env.NETWATCHING_ENABLED === 'true') {
   netWatchStarter()
 }
 
-module.exports = { app, redirectServer, redirectApiServer }
+module.exports = { app, redirectServer, redirectApiServer, credentials }
