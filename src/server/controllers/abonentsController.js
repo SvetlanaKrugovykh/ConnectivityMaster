@@ -15,6 +15,19 @@ module.exports.abonentSwitchOff = async function (request, _reply) {
   }
 }
 
+module.exports.abonentSwitchRedir = async function (request, _reply) {
+  const { ipAddresses, vlanId } = request.body
+  const message = await abonentsService.switchRedir(ipAddresses, vlanId)
+
+  if (!message) {
+    throw new HttpError[501](`Command execution rules for vlan=${vlanId} failed`)
+  }
+
+  return {
+    message: `Abonent redirect rules for vlan=${vlanId}`
+  }
+}
+
 module.exports.abonentSwitchOn = async function (request, _reply) {
   const { abonentId, ipAddress } = request.body
   const message = await abonentsService.switchOn(abonentId, ipAddress)
