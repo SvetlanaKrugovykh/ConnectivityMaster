@@ -2,6 +2,8 @@ const axios = require('axios')
 const fs = require('fs')
 const URL = process.env.URL
 const AUTH_TOKEN = process.env.AUTH_TOKEN
+const readFile = util.promisify(fs.readFile)
+const writeFile = util.promisify(fs.writeFile)
 const { runCommand } = require('../utils/commandsOS')
 
 module.exports.getInvoice = async function (ipAddress) {
@@ -19,18 +21,40 @@ module.exports.execServiceContinued = async function (ipAddress) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true
   }
-  try {
-    // const deleteCommand = await runCommand('/sbin/ipfw', ['delete', abonentId])
 
-    // if (deleteCommand.stdout) {
-    //   console.log(`${new Date()}: Added rule ${abonentId} -> ${ipAddress} successfully.`)
-    // }
+  try {
+    const parts = ipAddress.split('.')
+    const vlanId = parts.length === 4 ? parts[2] : null
+
+    if (!vlanId) {
+      console.error(`Invalid ipAddress=${ipAddress} format. Could not extract vlanId.`)
+      return false
+    }
+
+    const filePath = `/home/admin/deny_ip/vlan${vlanId}_deny_hosts`
+
+    const fileContent = await readFile(filePath, 'utf8')
+    const updatedContent = fileContent
+      .split('\n')
+      .filter(line => line.trim() !== ipAddress)
+      .join('\n')
+
+    await writeFile(filePath, updatedContent)
+
+    console.log(`${new Date()}: Removed ${ipAddress} for vlan=${vlanId} successfully.`)
+
+    const addCommand = await runCommand(`/sbin/pfctl -nf /etc/pf.rules`)
+    if (addCommand.stdout) {
+      console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.`)
+    }
+
     return true
   } catch (error) {
-    console.error(`${new Date()}: Error executing commands:-> ${ipAddress} `, error.message)
+    console.error('Error executing commands:', error.message)
     return false
   }
 }
+
 
 async function getReceipt(ipAddress) {
   try {
