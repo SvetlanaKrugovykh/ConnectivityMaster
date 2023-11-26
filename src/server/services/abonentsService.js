@@ -66,7 +66,6 @@ module.exports.switchOn = async function (abonentId, ipAddress) {
   }
 }
 
-
 module.exports.fwdOff = async function (abonentId, ipAddress, vlanId) {
   if (process.env.PLATFORM !== 'freebsd') {
     return true

@@ -10,11 +10,10 @@ module.exports = (fastify, _opts, done) => {
   })
 
   fastify.route({
-    method: 'POST',
+    method: 'GET',
     url: '/service-go-on/',
     handler: redirectApiController.abonentServiceContinue,
-    preHandler: [
-    ],
+    preHandler: [],
   })
 
   done()

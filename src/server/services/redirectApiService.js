@@ -1,10 +1,12 @@
 const axios = require('axios')
 const fs = require('fs')
+const util = require('util')
 const URL = process.env.URL
 const AUTH_TOKEN = process.env.AUTH_TOKEN
 const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
 const { runCommand } = require('../utils/commandsOS')
+const locks = {}
 
 module.exports.getInvoice = async function (ipAddress) {
   try {
@@ -32,6 +34,10 @@ module.exports.execServiceContinued = async function (ipAddress) {
     }
 
     const filePath = `/home/admin/deny_ip/vlan${vlanId}_deny_hosts`
+    if (!locks[filePath]) {
+      locks[filePath] = Promise.resolve();
+    }
+    await locks[filePath]
 
     const fileContent = await readFile(filePath, 'utf8')
     const updatedContent = fileContent
@@ -42,6 +48,7 @@ module.exports.execServiceContinued = async function (ipAddress) {
     await writeFile(filePath, updatedContent)
 
     console.log(`${new Date()}: Removed ${ipAddress} for vlan=${vlanId} successfully.`)
+    locks[filePath] = Promise.resolve()
 
     const addCommand = await runCommand(`/sbin/pfctl -nf /etc/pf.rules`)
     if (addCommand.stdout) {
