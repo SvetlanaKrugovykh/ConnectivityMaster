@@ -1,8 +1,12 @@
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
 
-async function runCommand(command, args, value = '') {
-  const fullCommand = `${command} ${args.join(' ')}`
+async function runCommand(command, args = [], value = '') {
+  let fullCommand = command
+
+  if (args.length > 0) {
+    fullCommand += ` ${args.join(' ')}`
+  }
 
   try {
     const { stdout, stderr } = await exec(fullCommand)
