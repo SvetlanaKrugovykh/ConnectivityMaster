@@ -10,6 +10,7 @@ async function runCommand(command, args = [], value = '') {
 
   try {
     const { stdout, stderr } = await exec(fullCommand)
+    if (command.includes('pfctl')) console.log(`${new Date()}: ${command} out: ${stdout}`)
     if (command === 'snmpwalk') {
       if (stdout.includes(value)) {
         return 'Status OK'
