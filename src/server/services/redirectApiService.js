@@ -50,10 +50,8 @@ module.exports.execServiceContinued = async function (ipAddress) {
     console.log(`${new Date()}: Removed ${ipAddress} for vlan=${vlanId} successfully.`)
     locks[filePath] = Promise.resolve()
 
-    const addCommand = await runCommand(`/sbin/pfctl -nf /etc/pf.rules`)
-    if (addCommand.stdout) {
-      console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.`)
-    }
+    const addCommand = await runCommand(`/sbin/pfctl -f /etc/pf.rules`)
+    console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.=>${addCommand.stdout}`)
 
     return true
   } catch (error) {

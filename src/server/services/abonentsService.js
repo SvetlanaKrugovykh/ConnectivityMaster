@@ -37,10 +37,8 @@ module.exports.switchRedir = async function (ipAddresses, vlanId) {
     await writeFile(filePath, content)
     console.log(`${new Date()}: Redir file for vlan=${vlanId} wrote successfully.`)
 
-    const addCommand = await runCommand('/sbin/pfctl -nf /etc/pf.rules')
-    if (addCommand.stdout) {
-      console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.`)
-    }
+    const addCommand = await runCommand('/sbin/pfctl -f /etc/pf.rules')
+    console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.=>${addCommand.stdout}`)
 
     return true
   } catch (error) {
