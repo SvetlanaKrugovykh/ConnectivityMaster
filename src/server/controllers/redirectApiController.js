@@ -1,6 +1,7 @@
 const HttpError = require('http-errors')
 const fs = require('fs')
 const redirectApiService = require('../services/redirectApiService')
+const { sendReqToDB } = require('../modules/to_local_DB')
 
 module.exports.getInvoice = async function (request, reply) {
   try {
@@ -17,7 +18,12 @@ module.exports.getInvoice = async function (request, reply) {
     if (fullFileName_ !== null) {
       fullFileName_ = fullFileName_.replace(/\\\\/g, '\\')
     }
-
+    try {
+      await sendReqToDB('__SaveSiteMsg__', `${fullFileName_}#getInvoice`, '')
+    }
+    catch (err) {
+      console.log('PROBLEM of __SaveSiteMsg__', `${fullFileName_}#getInvoice#`, '')
+    }
     reply.header('Content-Type', 'application/pdf')
     reply.header('Access-Control-Allow-Origin', '*')
     reply.header('Access-Control-Allow-Methods', 'GET')
@@ -36,7 +42,12 @@ module.exports.abonentServiceContinue = async function (request, _reply) {
   if (!message) {
     throw new HttpError[501]('Command execution failed')
   }
-
+  try {
+    await sendReqToDB('__SaveSiteMsg__', `${ipAddress}#ServiceContinue`, '')
+  }
+  catch (err) {
+    console.log('PROBLEM of __SaveSiteMsg__', `${ipAddress}#ServiceContinue#`, '')
+  }
   return {
     message: `Service continued for ${ipAddress}`
   }
