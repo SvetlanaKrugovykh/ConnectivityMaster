@@ -37,6 +37,10 @@ module.exports.switchRedir = async function (ipAddresses, vlanId) {
     modifiedVlanId = '91'
   }
 
+  if (ipAddresses.some(ip => ip.startsWith('192.168.111.'))) {
+    modifiedVlanId = '411'
+  }
+
   try {
     const filePath = `/home/admin/deny_ip/vlan${modifiedVlanId}_deny_hosts`
     const content = ipAddresses.map(ip => ip + '\n').join('')
