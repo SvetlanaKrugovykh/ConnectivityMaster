@@ -27,13 +27,17 @@ module.exports.execServiceContinued = async function (ipAddress) {
   try {
     const parts = ipAddress.split('.')
     const vlanId = parts.length === 4 ? parts[2] : null
-
     if (!vlanId) {
       console.error(`Invalid ipAddress=${ipAddress} format. Could not extract vlanId.`)
       return false
     }
 
-    const filePath = `/home/admin/deny_ip/vlan${vlanId}_deny_hosts`
+    let modifiedVlanId = vlanId
+    if (ipAddress.startsWith('10.100.')) modifiedVlanId = '91'
+    if (ipAddress.startsWith('192.168.111.')) modifiedVlanId = '411'
+
+
+    const filePath = `/home/admin/deny_ip/vlan${modifiedVlanId}_deny_hosts`
     if (!locks[filePath]) {
       locks[filePath] = Promise.resolve();
     }
@@ -47,11 +51,11 @@ module.exports.execServiceContinued = async function (ipAddress) {
 
     await writeFile(filePath, updatedContent)
 
-    console.log(`${new Date()}: Removed ${ipAddress} for vlan=${vlanId} successfully.`)
+    console.log(`${new Date()}: Removed ${ipAddress} for vlan=${modifiedVlanId} successfully.`)
     locks[filePath] = Promise.resolve()
 
     const addCommand = await runCommand(`/sbin/pfctl -f /etc/pf.rules`)
-    console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.=>${addCommand.stdout}`)
+    console.log(`${new Date()}: pf rules uploaded for vlan=${modifiedVlanId} successfully.=>${addCommand.stdout}`)
 
     return true
   } catch (error) {

@@ -31,24 +31,14 @@ module.exports.switchRedir = async function (ipAddresses, vlanId) {
     return true
   }
 
-  let modifiedVlanId = vlanId
-
-  if (ipAddresses.some(ip => ip.startsWith('10.100.'))) {
-    modifiedVlanId = '91'
-  }
-
-  if (ipAddresses.some(ip => ip.startsWith('192.168.111.'))) {
-    modifiedVlanId = '411'
-  }
-
   try {
-    const filePath = `/home/admin/deny_ip/vlan${modifiedVlanId}_deny_hosts`
+    const filePath = `/home/admin/deny_ip/vlan${vlanId}_deny_hosts`
     const content = ipAddresses.map(ip => ip + '\n').join('')
     await writeFile(filePath, content)
-    console.log(`${new Date()}: Redir file for vlan=${modifiedVlanId} ip=${ipAddresses} wrote successfully.`)
+    console.log(`${new Date()}: Redir file for vlan=${vlanId} ip=${ipAddresses} wrote successfully.`)
 
     const addCommand = await runCommand('/sbin/pfctl -f /etc/pf.rules')
-    console.log(`${new Date()}: pf rules uploaded for vlan=${modifiedVlanId} ip=${ipAddresses} successfully.=>${addCommand.stdout}`)
+    console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} ip=${ipAddresses} successfully.=>${addCommand.stdout}`)
 
     return true
   } catch (error) {
