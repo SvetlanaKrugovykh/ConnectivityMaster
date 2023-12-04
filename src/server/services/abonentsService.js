@@ -31,14 +31,20 @@ module.exports.switchRedir = async function (ipAddresses, vlanId) {
     return true
   }
 
+  let modifiedVlanId = vlanId
+
+  if (ipAddresses.some(ip => ip.startsWith('10.100.'))) {
+    modifiedVlanId = '91'
+  }
+
   try {
-    const filePath = `/home/admin/deny_ip/vlan${vlanId}_deny_hosts`
+    const filePath = `/home/admin/deny_ip/vlan${modifiedVlanId}_deny_hosts`
     const content = ipAddresses.map(ip => ip + '\n').join('')
     await writeFile(filePath, content)
-    console.log(`${new Date()}: Redir file for vlan=${vlanId} wrote successfully.`)
+    console.log(`${new Date()}: Redir file for vlan=${modifiedVlanId} ip=${ipAddresses} wrote successfully.`)
 
     const addCommand = await runCommand('/sbin/pfctl -f /etc/pf.rules')
-    console.log(`${new Date()}: pf rules uploaded for vlan=${vlanId} successfully.=>${addCommand.stdout}`)
+    console.log(`${new Date()}: pf rules uploaded for vlan=${modifiedVlanId} ip=${ipAddresses} successfully.=>${addCommand.stdout}`)
 
     return true
   } catch (error) {
@@ -46,6 +52,7 @@ module.exports.switchRedir = async function (ipAddresses, vlanId) {
     return false
   }
 }
+
 
 module.exports.switchOn = async function (abonentId, ipAddress) {
   if (process.env.PLATFORM !== 'freebsd') {
