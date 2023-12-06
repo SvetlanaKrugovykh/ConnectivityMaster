@@ -25,6 +25,16 @@ module.exports = (fastify, _opts, done) => {
 
   fastify.route({
     method: 'POST',
+    url: '/abonents/switch-redir-redir-client-on/',
+    handler: abonentsController.abonentSwitchRedirectedOn,
+    preHandler: [
+      isAuthorizedGuard
+    ],
+    schema: abonentSwitchRedirSchema
+  })
+
+  fastify.route({
+    method: 'POST',
     url: '/abonents/switch-on/',
     handler: abonentsController.abonentSwitchOn,
     preHandler: [

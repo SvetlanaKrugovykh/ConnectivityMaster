@@ -1,5 +1,6 @@
 const HttpError = require('http-errors')
 const abonentsService = require('../services/abonentsService')
+const redirectApiService = require('../services/redirectApiService')
 const addTag = process.env.PLATFORM !== 'freebsd' ? '( Test mode )' : ''
 
 module.exports.abonentSwitchOff = async function (request, _reply) {
@@ -38,6 +39,19 @@ module.exports.abonentSwitchOn = async function (request, _reply) {
 
   return {
     message: `Abonent switched on ${addTag}`
+  }
+}
+
+module.exports.abonentSwitchRedirectedOn = async function (request, _reply) {
+  const { ipAddress } = request.body
+  const message = await redirectApiService.execServiceContinued(ipAddress)
+
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    message: `Redirected abonent switched on ${message}`
   }
 }
 
