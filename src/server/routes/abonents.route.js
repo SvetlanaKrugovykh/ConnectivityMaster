@@ -2,7 +2,6 @@ const abonentsController = require('../controllers/abonentsController')
 const isAuthorizedGuard = require('../guards/is-authorized.guard')
 const abonentSwitchOffSchema = require('../schemas/abonent-switch-off.schema')
 const abonentSwitchRedirSchema = require('../schemas/abonent-switch-redir.schema')
-const abonentSwitchRedirClientOnSchema = require('../schemas/abonent-switch-redir-client-on.schema')
 const abonentArpSchema = require('../schemas/abonent-arp.schema')
 module.exports = (fastify, _opts, done) => {
   fastify.route({
@@ -32,7 +31,7 @@ module.exports = (fastify, _opts, done) => {
     preHandler: [
       isAuthorizedGuard
     ],
-    schema: abonentSwitchRedirClientOnSchema
+    schema: abonentSwitchRedirSchema
   })
 
   fastify.route({
