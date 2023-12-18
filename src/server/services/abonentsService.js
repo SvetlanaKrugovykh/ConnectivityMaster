@@ -104,3 +104,19 @@ module.exports.fwdOn = async function (abonentId, ipAddress) {
     return false
   }
 }
+
+module.exports.getArpMac = async function (ipAddress) {
+  if (process.env.PLATFORM !== 'freebsd') {
+    return true
+  }
+
+  try {
+    const addCommand = await runCommand(`/sbin/arp -a | grep ${ipAddress}`)
+    console.log(`${new Date()}: mac loaded for ip=${ipAddress} successfully.=>${addCommand.stdout}`)
+
+    return addCommand.stdout
+  } catch (error) {
+    console.error('Error executing commands:', error.message)
+    return false
+  }
+}

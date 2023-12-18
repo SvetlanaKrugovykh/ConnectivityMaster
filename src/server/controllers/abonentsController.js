@@ -55,6 +55,21 @@ module.exports.abonentSwitchRedirectedOn = async function (request, _reply) {
   }
 }
 
+module.exports.getArpMac = async function (request, _reply) {
+  const { ipAddress } = request.body
+  const message = await abonentsService.getArpMac(ipAddress)
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    message: `Mac address for ${ipAddress} is ${message}`
+  }
+}
+
+
+
+
 module.exports.abonentFwdOff = async function (request, _reply) {
   const { abonentId, ipAddress, vlanId } = request.body
   const message = await abonentsService.fwdOff(abonentId, ipAddress, vlanId)
