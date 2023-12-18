@@ -111,7 +111,7 @@ module.exports.getArpMac = async function (ipAddress) {
   }
 
   try {
-    const addCommand = await runCommand(`/sbin/arp -a | grep ${ipAddress}`)
+    const addCommand = await runCommand(`/usr/sbin/arp -a | grep ${ipAddress}`)
     console.log(`${new Date()}: mac loaded for ip=${ipAddress} successfully.=>${addCommand.stdout}`)
 
     return addCommand.stdout
