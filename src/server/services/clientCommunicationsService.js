@@ -8,6 +8,7 @@ module.exports.sendMessage = async function (body) {
   try {
     switch (body.type) {
       case 'email':
+        console.log('Sending email...', body.addresses[0])
         return await sendEmail(body)
       case 'telegram':
         return await sendTelegram(body)
