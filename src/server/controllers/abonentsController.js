@@ -100,6 +100,7 @@ module.exports.abonentFwdOn = async function (request, _reply) {
 
 module.exports.abonentSendMessage = async function (request, _reply) {
   const body = request.body
+  console.log('abonentSendMessage_controller', body.addresses[0])
   const messageResult = await clientCommunicationsService.sendMessage(body)
 
   if (!messageResult) {
