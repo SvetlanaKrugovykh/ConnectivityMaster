@@ -1,4 +1,5 @@
 const axios = require('axios')
+const nodemailer = require('nodemailer')
 require('dotenv').config()
 
 
@@ -34,5 +35,40 @@ async function sendTelegram(body) {
     } catch (error) {
       console.error('Error sending Telegram message:', error.message)
     }
+  }
+}
+
+async function sendEmail(body) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER_SILVER,
+      pass: process.env.EMAIL_PASSWORD_SILVER,
+    },
+  })
+
+  let attachments = []
+  if (body.attachments) {
+    for (const attachment of body.attachments) {
+      attachments.push({
+        filename: attachment.filename,
+        content: Buffer.from(attachment.content, 'base64'),
+      })
+    }
+  }
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER_SILVER,
+    to: body.addresses,
+    subject: body?.subject || 'Silver - mail',
+    text: body.message,
+    attachments,
+  }
+
+  try {
+    await transporter.sendMail(mailOptions)
+    console.log('Message sent successfully')
+  } catch (error) {
+    console.error('Error sending email:', error.message)
   }
 }
