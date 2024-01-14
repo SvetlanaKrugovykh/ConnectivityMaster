@@ -26,6 +26,7 @@
 		"ip-range-check": "^0.2.0",
 		"jsonwebtoken": "^9.0.1",
 		"net": "^1.0.2",
+		"node-telegram-bot-api": "^0.64.0",
 		"path": "^0.12.7",
 		"ping": "^0.4.4",
 		"snmp-native": "^1.2.0",

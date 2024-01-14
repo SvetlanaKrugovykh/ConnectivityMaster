@@ -1,5 +1,6 @@
 const HttpError = require('http-errors')
 const abonentsService = require('../services/abonentsService')
+const clientCommunicationsService = require('../services/clientCommunicationsService')
 const redirectApiService = require('../services/redirectApiService')
 const addTag = process.env.PLATFORM !== 'freebsd' ? '( Test mode )' : ''
 
@@ -93,5 +94,18 @@ module.exports.abonentFwdOn = async function (request, _reply) {
 
   return {
     message: `Abonent forwarded on ${addTag}`
+  }
+}
+
+module.exports.abonentSendMessage = async function (request, _reply) {
+  const body = request.body
+  const messageResult = await clientCommunicationsService.sendMessage(body)
+
+  if (!messageResult) {
+    throw new HttpError[501]('Command execution failed')
+  }
+
+  return {
+    message: `Message sent to ${addresses}`
   }
 }
