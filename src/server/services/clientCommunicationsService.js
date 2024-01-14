@@ -1,4 +1,6 @@
-const Telegram = require('node-telegram-bot-api')
+const axios = require('axios')
+require('dotenv').config()
+
 
 module.exports.sendMessage = async function (body) {
 
@@ -19,11 +21,18 @@ module.exports.sendMessage = async function (body) {
 
 async function sendTelegram(body) {
   const { addresses, message } = body
-  const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN)
 
-  addresses.forEach(address => {
-    telegram.sendMessage(address, message)
-  })
+  const apiToken = process.env.TELEGRAM_BOT_TOKEN_SILVER
 
-  return true
+  for (const address of addresses) {
+    try {
+      await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
+        chat_id: address,
+        text: message,
+      })
+      console.log('Message sent successfully')
+    } catch (error) {
+      console.error('Error sending Telegram message:', error.message)
+    }
+  }
 }
