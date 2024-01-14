@@ -67,8 +67,10 @@ async function sendEmail(body) {
 
   try {
     await transporter.sendMail(mailOptions)
-    console.log('Message sent successfully')
+    console.log(`Message to ${body.addresses[0]} sent successfully`)
+    return true
   } catch (error) {
-    console.error('Error sending email:', error.message)
+    console.error(`Error ${body.addresses[0]} sending email:`, error.message)
+    return false
   }
 }

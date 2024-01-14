@@ -107,6 +107,6 @@ module.exports.abonentSendMessage = async function (request, _reply) {
   }
 
   return {
-    message: `Message sent to ${addresses}`
+    message: `Message sent to ${body.addresses[0]}...`
   }
 }
