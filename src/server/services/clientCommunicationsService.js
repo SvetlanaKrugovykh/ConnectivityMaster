@@ -22,19 +22,36 @@ module.exports.sendMessage = async function (body) {
 }
 
 async function sendTelegram(body) {
-  const { addresses, message } = body
-
+  const { addresses, message, attachments } = body
   const apiToken = process.env.TELEGRAM_BOT_TOKEN_SILVER
 
   for (const address of addresses) {
     try {
-      await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
-        chat_id: address,
-        text: message,
-      })
+      if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+          const formData = new FormData();
+          formData.append('chat_id', address)
+          formData.append('caption', message)
+          const buffer = Buffer.from(attachment.content, 'base64');
+          if (!buffer) throw new Error('Failed to create buffer from base64 string')
+          formData.append('document', new Blob([buffer]), attachment.filename)
+          await axios.post(`https://api.telegram.org/bot${apiToken}/sendDocument`, formData, {
+            headers: {
+              'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
+            },
+          })
+        }
+      } else {
+        await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
+          chat_id: address,
+          text: message,
+        })
+      }
       console.log('Message sent successfully')
+      return true
     } catch (error) {
       console.error('Error sending Telegram message:', error.message)
+      return false
     }
   }
 }
