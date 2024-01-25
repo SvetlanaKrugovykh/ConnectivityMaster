@@ -14,7 +14,6 @@ async function runCommand(command, args = [], value = '') {
     if (command === 'snmpwalk') {
       if (fullCommand.includes('Octets')) {
         const value = stdout.split(' ').pop()
-        console.log(`111 |${stdout}|${value}`) //TODO: remove
         return value
       }
       if (stdout.includes(value)) {

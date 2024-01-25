@@ -23,7 +23,6 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
       try {
         const oid = `${snmpObject.oid}.${snmpObject.port}`
         response = await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, oid])
-        console.log(`222 ${new Date()}: ${response}`) //TODO: remove
         const snmpData = {
           ip_address: snmpObject.ip_address,
           oid: snmpObject.oid,
