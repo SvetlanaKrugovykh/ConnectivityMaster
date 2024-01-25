@@ -1,0 +1,42 @@
+const { runCommand } = require('../utils/commandsOS')
+const { sendReqToDB } = require('../modules/to_local_DB')
+
+async function loadSnmpMrtgObjectsList() {
+  try {
+    const data = await sendReqToDB('__GetSnmpMrtgObjects__', '', '')
+    const parsedData = JSON.parse(data)
+    const snmpObjectsList = parsedData.ResponseArray
+    return snmpObjectsList
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
+  if (process.env.PLATFORM !== 'freebsd') return true
+  let response = ''
+  const data = []
+
+  try {
+    for (let snmpObject of snmpMrtgObjectsList) {
+      const unixTimestamp = Math.floor(Date.now() / 1000)
+      try {
+        response = 10001
+        await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
+        const snmpData = {
+          ip_address: snmpObject.ip_address,
+          oid: snmpObject.oid,
+          value: response,
+          port: snmpObject.port,
+          unixTimestamp: unixTimestamp
+        }
+        data.push(snmpData)
+      } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}${datedoc} `) }
+    }
+    await sendReqToDB('__mrtg__', data, '')
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+module.exports = { loadSnmpMrtgObjectsList, loadSnmpMrtgObjectData }

@@ -6,7 +6,7 @@ const AUTH_TOKEN = process.env.AUTH_TOKEN
 async function sendReqToDB(reqType, data, _text) {
 
   let dataString = JSON.stringify(data)
-  const URL = reqType === '__traffic__' ? LOG_URL : USUAL_URL
+  const URL = (reqType === '__traffic__' || reqType === '__mrtg__') ? LOG_URL : USUAL_URL
 
   try {
     const response = await axios({
