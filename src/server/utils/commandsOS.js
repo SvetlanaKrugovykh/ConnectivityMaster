@@ -13,9 +13,9 @@ async function runCommand(command, args = [], value = '') {
     if (command.includes('pfctl')) console.log(`${new Date()}: ${command} out: ${stdout}`)
     if (command === 'snmpwalk') {
       if (fullCommand.includes('Octets')) {
-        const result = stdout.replace(stdout, args[7]).replace(' ', '')
-        console.log(`111 ${args[7]}|${stdout}|${result}`) //TODO: remove
-        return result
+        const value = stdout.split(' ').pop()
+        console.log(`111 |${stdout}|${value}`) //TODO: remove
+        return value
       }
       if (stdout.includes(value)) {
         return 'Status OK'
