@@ -21,8 +21,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
     for (let snmpObject of snmpMrtgObjectsList) {
       const unixTimestamp = Math.floor(Date.now() / 1000)
       try {
-        response = 10001
-        await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
+        response = await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, snmpObject.oid])
         const snmpData = {
           ip_address: snmpObject.ip_address,
           oid: snmpObject.oid,
