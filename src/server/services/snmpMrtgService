@@ -31,7 +31,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
           unixTimestamp: unixTimestamp
         }
         data.push(snmpData)
-      } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}${datedoc} `) }
+      } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}`) }
     }
     await sendReqToDB('__mrtg__', data, '')
   } catch (err) {
