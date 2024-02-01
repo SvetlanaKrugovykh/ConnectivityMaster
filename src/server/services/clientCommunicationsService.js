@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer')
 require('dotenv').config()
 
 
-module.exports.sendEMAIL = async function (body) {
+module.exports.sendMessage = async function (body) {
 
   try {
     switch (body.type) {
@@ -90,8 +90,13 @@ async function sendEmail(body) {
     from: process.env.EMAIL_USER_SILVER,
     to: body.addresses,
     subject: body?.subject || 'Silver - mail',
-    text: body.message,
     attachments,
+  }
+
+  if (body.message.includes('</')) {
+    mailOptions.html = body.message
+  } else {
+    mailOptions.text = body.message
   }
 
   try {
