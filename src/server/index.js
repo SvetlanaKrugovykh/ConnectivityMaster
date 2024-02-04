@@ -3,7 +3,7 @@ const https = require('https')
 const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const httpProxy = require('@fastify/http-proxy')
-const { netWatchStarter } = require('./services/netWatchService')
+const { netWatchStarter, mrtgWatchStarter } = require('./services/netWatchService')
 const fs = require('fs')
 const path = require('path')
 
@@ -55,4 +55,7 @@ if (process.env.NETWATCHING_ENABLED === 'true') {
   netWatchStarter()
 }
 
+if (process.env.MRTG_WATCHING_ENABLED === 'true') {
+  mrtgWatchStarter()
+}
 module.exports = { app, redirectServer, redirectApiServer, credentials }

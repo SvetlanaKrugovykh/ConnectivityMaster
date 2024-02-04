@@ -8,12 +8,10 @@ async function netWatchStarter() {
   let ipList = await loadipList()
   let servicesList = await loadServicesList()
   let snmpObjectsList = await loadSnmpObjectsList()
-  let snmpMrtgObjectsList = await loadSnmpMrtgObjectsList()
 
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
   const servicesPoolingInterval = parseInt(process.env.SERVICES_POOLING_INTERVAL) * 1000
   const snmpPoolingInterval = parseInt(process.env.SNMP_POOLING_INTERVAL) * 1000 || 320000
-  const snmpMrtgPollingInterval = parseInt(process.env.SNMP_MRTG_POOLING_INTERVAL) * 1000 || 600000
 
   if (process.env.NETWATCHING_TEST_MODE === 'true') {
     console.log('NETWATCHING_TEST_MODE is true')
@@ -57,6 +55,12 @@ async function netWatchStarter() {
     }
   }, snmpPoolingInterval)
 
+}
+
+async function mrtgWatchStarter() {
+  let snmpMrtgObjectsList = await loadSnmpMrtgObjectsList()
+  const snmpMrtgPollingInterval = parseInt(process.env.SNMP_MRTG_POOLING_INTERVAL) * 1000 || 600000
+
   setInterval(() => {
     try {
       loadSnmpMrtgObjectData(snmpMrtgObjectsList)
@@ -64,8 +68,6 @@ async function netWatchStarter() {
       console.log(err)
     }
   }, snmpMrtgPollingInterval)
-
 }
 
-
-module.exports = { netWatchStarter }
+module.exports = { netWatchStarter, mrtgWatchStarter }
