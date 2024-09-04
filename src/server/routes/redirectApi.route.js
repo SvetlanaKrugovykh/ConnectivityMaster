@@ -16,5 +16,12 @@ module.exports = (fastify, _opts, done) => {
     preHandler: [],
   })
 
+  fastify.route({
+    method: 'GET',
+    url: '/get-pay-link/',
+    handler: redirectApiController.abonentGetPayLink,
+    preHandler: [],
+  })
+
   done()
 }

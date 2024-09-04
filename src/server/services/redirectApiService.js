@@ -64,6 +64,9 @@ module.exports.execServiceContinued = async function (ipAddress) {
   }
 }
 
+module.exports.execGetPayLink = async function (ipAddress) {
+
+}
 
 async function getReceipt(ipAddress) {
   try {

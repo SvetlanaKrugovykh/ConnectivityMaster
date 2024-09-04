@@ -52,3 +52,21 @@ module.exports.abonentServiceContinue = async function (request, _reply) {
     message: `Service continued for ${ipAddress}`
   }
 }
+
+module.exports.abonentGetPayLink = async function (request, reply) {
+  const ipAddress = request.ip
+  const linkURI = await redirectApiService.execGetPayLink(ipAddress)
+
+  if (!message) {
+    throw new HttpError[501]('Command execution failed')
+  }
+  try {
+    await sendReqToDB('__SaveSiteMsg__', `${ipAddress}#GetPayLink`, '')
+  }
+  catch (err) {
+    console.log('PROBLEM of __SaveSiteMsg__', `${ipAddress}#GetPayLink#`, '')
+  }
+  return {
+    message: linkURI
+  }
+}
