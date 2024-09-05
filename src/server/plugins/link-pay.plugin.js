@@ -9,6 +9,7 @@ const restrictIPMiddleware = (req, reply, done) => {
     console.log(`${new Date()}: Forbidden IP: ${clientIP}`)
     reply.code(403).send('Forbidden')
   } else {
+    console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
     done()
   }
 }
