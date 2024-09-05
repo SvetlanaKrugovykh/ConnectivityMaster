@@ -2,6 +2,7 @@ const Fastify = require('fastify')
 const https = require('https')
 const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
+const linkPayPlugin = require('./plugins/link-pay.plugin')
 const httpProxy = require('@fastify/http-proxy')
 const { netWatchStarter, mrtgWatchStarter } = require('./services/netWatchService')
 const fs = require('fs')
@@ -22,6 +23,10 @@ const app = Fastify({
 })
 
 const redirectServer = Fastify({
+  trustProxy: true,
+})
+
+const getUrls = Fastify({
   trustProxy: true,
 })
 
@@ -55,12 +60,14 @@ app.register(authPlugin)
 app.register(require('./routes/auth.route'), { prefix: '/api' })
 app.register(require('./routes/abonents.route'), { prefix: '/api' })
 app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
-app.register(require('./routes/linkPay.route'), { prefix: '/api' })
 
 redirectServer.register(redirectPlugin)
 
 redirectApiServer.register(redirectPlugin)
 redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/redirect-api' })
+
+getUrls.register(linkPayPlugin)
+getUrls.register(require('./routes/linkPay.route'), { prefix: '/get-urls' })
 
 if (process.env.NETWATCHING_ENABLED === 'true') {
   netWatchStarter()
@@ -74,4 +81,4 @@ app_gate.register(require('@fastify/formbody'))
 app_gate.register(require('./routes/callback.route'), { prefix: '/api/liqpay/callback' })
 app_gate.register(authPlugin)
 
-module.exports = { app, app_gate, redirectServer, redirectApiServer, credentials }
+module.exports = { app, getUrls, app_gate, redirectServer, redirectApiServer, credentials }
