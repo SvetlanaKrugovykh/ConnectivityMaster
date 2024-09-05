@@ -6,13 +6,13 @@ const allowedIPAddresses = process.env.API_ALLOWED_IPS.split(',')
 
 const restrictIPMiddleware = (req, reply, done) => {
   const clientIP = req.ip
-  if (!allowedIPAddresses.includes(clientIP)) {
-    console.log(`${new Date()}: Forbidden IP: ${clientIP}`)
-    reply.code(403).send('Forbidden')
-  } else {
-    console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
-    done()
-  }
+  // if (!allowedIPAddresses.includes(clientIP)) {
+  console.log(`${new Date()}: Forbidden IP: ${clientIP}`)
+  // reply.code(403).send('Forbidden')
+  // } else {
+  console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
+  done()
+  // }
 }
 
 async function authPlugin(fastify, _ = {}) {

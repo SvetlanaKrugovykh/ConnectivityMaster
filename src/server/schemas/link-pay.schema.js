@@ -1,5 +1,5 @@
 module.exports = {
-  description: 'Create record with abbreviation, contract, and amount',
+  description: 'Create record with abbreviation, payment_code, and amount',
   tags: ['records'],
   summary: 'Create new record',
   headers: {
@@ -14,7 +14,7 @@ module.exports = {
       contract: { type: 'string' },
       amount: { type: 'number' }
     },
-    required: ['abbreviation', 'contract', 'amount']
+    required: ['abbreviation', 'payment_code', 'amount']
   },
   response: {
     201: {

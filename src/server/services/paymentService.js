@@ -3,11 +3,11 @@ const crypto = require('crypto')
 const getLiqpayKeys = require('../globalBuffer').getLiqpayKeys
 
 
-module.exports.formPaymentLink = async function (ipAddress, abbreviation, contract, amount) {
+module.exports.formPaymentLink = async function (ipAddress, abbreviation, payment_code, amount) {
 
   const liqpayKeys = getLiqpayKeys(abbreviation)
   if (!liqpayKeys) {
-    console.log(`No LiqPay keys found for abbreviation: ${abbreviation}`)
+    console.log(`No LiqPay keys found for abbreviation: ${abbreviation}: ${payment_code}`)
     return null
   }
 
@@ -15,7 +15,7 @@ module.exports.formPaymentLink = async function (ipAddress, abbreviation, contra
   console.log(`LiqPay Public Key: ${publicKey}`)
 
   const currency = 'UAH'
-  const description = `Оплата за послугу. Код оплати: ${contract.payment_code}. Сума оплати: ${amount} грн.`
+  const description = `Оплата за послугу. Код оплати: ${payment_code}. Сума оплати: ${amount} грн.`
   const callBackUrl = process.env.LIQPAY_CALLBACK_URL
   const URL_MDL = process.env.URL_MDL || ''
   const server_callback_url = `${callBackUrl}${URL_MDL}${abbreviation}/`
