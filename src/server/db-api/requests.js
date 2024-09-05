@@ -20,5 +20,5 @@ module.exports.updatePayment = async function (paymentData) {
   if (!response.status == 200) {
     return null
   }
-
+  return response.data
 }
