@@ -5,9 +5,7 @@ module.exports = {
   headers: {
     type: 'object',
     properties: {
-      Authorization: { type: 'string' }
     },
-    required: ['Authorization']
   },
   body: {
     type: 'object',

@@ -10,9 +10,9 @@ module.exports = (fastify, _opts, done) => {
     url: '/get-pay-link/',
     handler: linkPayController.getLinkPay,
     preHandler: [
-      // isPayAuthorizedGuard
+      isPayAuthorizedGuard
     ],
-    // schema: liqPaySchema
+    schema: liqPaySchema
   })
   done()
 }

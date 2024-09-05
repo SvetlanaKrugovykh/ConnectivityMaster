@@ -1,5 +1,6 @@
 const HttpError = require('http-errors')
 const paymentService = require('../services/paymentService')
+const { sendReqToDB } = require('../modules/to_local_DB')
 
 module.exports.getLinkPay = async function (request, _reply) {
   const ipAddress = request.ip

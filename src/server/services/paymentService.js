@@ -38,13 +38,9 @@ module.exports.formPaymentLink = async function (ipAddress, abbreviation, contra
   const paymentLink = `https://www.liqpay.ua/api/3/checkout?data=${encodeURIComponent(data)}&signature=${encodeURIComponent(signature)}`
   console.log(paymentLink)
 
-  const payment = await dbRequests.createPayment(contract.id, contract.organization_id, amount, currency, description, `order_${Date.now()}`)
-  console.log(payment)
-
   const returnData = {
     ipAddress: ipAddress,
     paymentLink: paymentLink,
   }
   return returnData
-
 }
