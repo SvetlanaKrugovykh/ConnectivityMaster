@@ -14,7 +14,7 @@ module.exports.updatePayment = async function (paymentData) {
     data: {
       ...paymentData,
     },
-    signature: "Added",
+    signature,
   })
 
   if (!response.status == 200) {
