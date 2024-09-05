@@ -12,6 +12,11 @@ const credentials = {
   cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate.pem'))
 }
 
+const credentials_gate = {
+  key: fs.readFileSync(path.resolve(__dirname, '../../path/to/key_gate.pem')),
+  cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate_gate.pem'))
+}
+
 const app = Fastify({
   trustProxy: true
 })
@@ -23,6 +28,11 @@ const redirectServer = Fastify({
 const redirectApiServer = Fastify({
   trustProxy: true,
   https: credentials
+})
+
+const app_gate = Fastify({
+  https: credentials_gate,
+  trustProxy: true
 })
 
 redirectServer.register(httpProxy, {
@@ -58,4 +68,9 @@ if (process.env.NETWATCHING_ENABLED === 'true') {
 if (process.env.MRTG_WATCHING_ENABLED === 'true') {
   mrtgWatchStarter()
 }
-module.exports = { app, redirectServer, redirectApiServer, credentials }
+
+app_gate.register(require('@fastify/formbody'))
+app_gate.register(require('./routes/callback.route'), { prefix: '/api/liqpay/callback' })
+app_gate.register(authPlugin)
+
+module.exports = { app, app_gate, redirectServer, redirectApiServer, credentials }
