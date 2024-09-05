@@ -12,10 +12,11 @@ module.exports.updatePayment = async function (paymentData) {
       'Content-Type': 'application/json',
     },
     data: {
-      paymentData
+      ...paymentData,
     },
-    signature
+    signature: "Added",
   })
+
   if (!response.status == 200) {
     return null
   }
