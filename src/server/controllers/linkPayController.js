@@ -17,6 +17,6 @@ module.exports.getLinkPay = async function (request, _reply) {
     console.log('PROBLEM of __SaveSiteMsg__', `${ipAddress}#getLinkPay#`, '')
   }
   return {
-    message: message
+    message
   }
 }
