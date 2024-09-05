@@ -40,5 +40,5 @@ app_gate.listen({ port: API_GATE_PORT, host: API_GATE_HOST }, (err, address) => 
     app.log.error(err)
     process.exit(1)
   }
-  console.log(`server app_api started on ${address}`)
+  console.log(`server app_gate started on ${address}`)
 })

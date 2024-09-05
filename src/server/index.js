@@ -55,6 +55,7 @@ app.register(authPlugin)
 app.register(require('./routes/auth.route'), { prefix: '/api' })
 app.register(require('./routes/abonents.route'), { prefix: '/api' })
 app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
+app.register(require('./routes/linkPay.route'), { prefix: '/api' })
 
 redirectServer.register(redirectPlugin)
 
