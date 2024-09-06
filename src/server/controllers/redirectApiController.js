@@ -55,9 +55,16 @@ module.exports.abonentServiceContinue = async function (request, _reply) {
 
 module.exports.abonentGetPayLink = async function (request, reply) {
   const ipAddress = request.ip
-  const amount = request.query.amount
+  const amount = parseFloat(request.query.amount)
 
-  const linkURI = await redirectApiService.execGetPayLink(ipAddress, amount)
+  if (isNaN(amount) || amount <= 0) {
+    throw new HttpError[501](`Problem with get amount for ${ipAddress}`)
+  }
+
+  const commissionRate = 0.015;
+  const totalAmount = (Math.ceil((amount / (1 - commissionRate)) * 100) / 100).toFixed(2)
+
+  const linkURI = await redirectApiService.execGetPayLink(ipAddress, totalAmount)
 
   if (!message) {
     throw new HttpError[501]('Command execution failed')
