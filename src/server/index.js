@@ -24,6 +24,7 @@ const app = Fastify({
 
 const redirectServer = Fastify({
   trustProxy: true,
+  https: credentials_gate
 })
 
 const getUrls = Fastify({
@@ -32,7 +33,7 @@ const getUrls = Fastify({
 
 const redirectApiServer = Fastify({
   trustProxy: true,
-  https: credentials
+  https: credentials_gate,
 })
 
 const app_gate = Fastify({
