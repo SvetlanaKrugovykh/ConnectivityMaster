@@ -1,4 +1,5 @@
 const Fastify = require('fastify')
+const cors = require('@fastify/cors')
 const https = require('https')
 const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
@@ -41,6 +42,11 @@ const app_gate = Fastify({
   trustProxy: true
 })
 
+redirectServer.register(cors, {
+  origin: '*',
+  methods: ['GET']
+})
+
 redirectServer.register(httpProxy, {
   upstream: process.env.UPSTREAM_URL,
   prefix: '/',
@@ -64,6 +70,10 @@ app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
 
 redirectServer.register(redirectPlugin)
 
+redirectApiServer.register(cors, {
+  origin: '*',
+  methods: ['GET']
+})
 redirectApiServer.register(redirectPlugin)
 redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/redirect-api' })
 

@@ -9,7 +9,7 @@
 	"author": "Your Name",
 	"license": "MIT",
 	"dependencies": {
-		"@fastify/cors": "^8.3.0",
+		"@fastify/cors": "^8.5.0",
 		"@fastify/formbody": "^7.4.0",
 		"@fastify/helmet": "^11.0.0",
 		"@fastify/http-proxy": "^9.2.1",
