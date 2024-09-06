@@ -2,6 +2,7 @@ const HttpError = require('http-errors')
 const fs = require('fs')
 const redirectApiService = require('../services/redirectApiService')
 const { sendReqToDB } = require('../modules/to_local_DB')
+const { userInfo } = require('os')
 
 module.exports.getInvoice = async function (request, reply) {
   try {
@@ -64,9 +65,9 @@ module.exports.abonentGetPayLink = async function (request, reply) {
   const commissionRate = 0.015;
   const totalAmount = (Math.ceil((amount / (1 - commissionRate)) * 100) / 100).toFixed(2)
 
-  const linkURI = await redirectApiService.execGetPayLink(ipAddress, totalAmount)
+  const payment_data = await redirectApiService.execGetPayLink(ipAddress, totalAmount)
 
-  if (!message) {
+  if (!payment_data) {
     throw new HttpError[501]('Command execution failed')
   }
   try {
@@ -75,7 +76,10 @@ module.exports.abonentGetPayLink = async function (request, reply) {
   catch (err) {
     console.log('PROBLEM of __SaveSiteMsg__', `${ipAddress}#GetPayLink#`, '')
   }
-  return {
-    message: linkURI
+  const message = {
+    ipAddress,
+    user_info: payment_data.user_info,
+    linkURI: payment_data.linkURI,
   }
+  return reply.send(message)
 }

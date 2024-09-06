@@ -91,9 +91,14 @@ module.exports.execGetPayLink = async function (ipAddress, amount) {
       try {
         const responseData = JSON.parse(response.data)
         console.log('Parsed response:', responseData)
+        const user_info = `Ви отримали посилання для сплати за договором ${responseData.contract_name}, що зареєстрований з email (${responseData.email} та номером телефону ${responseData.phone_number}) на суму ${amount} грн. Перейдіть за посиланням для сплати.`
         const { organization_abbreviation, payment_code } = responseData
         console.log(organization_abbreviation, payment_code)
-        const message = await paymentService.formPaymentLink(ipAddress, organization_abbreviation, payment_code, amount)
+        const linkURI = await paymentService.formPaymentLink(ipAddress, organization_abbreviation, payment_code, amount)
+        const message = {
+          linkURI,
+          user_info
+        }
         return message
       } catch (error) {
         console.error('Error executing commands:', error.message)
