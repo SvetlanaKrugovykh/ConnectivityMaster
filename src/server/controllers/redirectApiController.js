@@ -55,7 +55,9 @@ module.exports.abonentServiceContinue = async function (request, _reply) {
 
 module.exports.abonentGetPayLink = async function (request, reply) {
   const ipAddress = request.ip
-  const linkURI = await redirectApiService.execGetPayLink(ipAddress)
+  const amount = request.query.amount
+
+  const linkURI = await redirectApiService.execGetPayLink(ipAddress, amount)
 
   if (!message) {
     throw new HttpError[501]('Command execution failed')
