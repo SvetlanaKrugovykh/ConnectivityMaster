@@ -38,14 +38,10 @@ const redirectApiServer = Fastify({
 })
 
 const app_gate = Fastify({
-  https: credentials_gate,
-  trustProxy: true
+  trustProxy: true,
+  https: credentials_gate
 })
 
-redirectServer.register(cors, {
-  origin: '*',
-  methods: ['GET']
-})
 
 redirectServer.register(httpProxy, {
   upstream: process.env.UPSTREAM_URL,
@@ -88,8 +84,14 @@ if (process.env.MRTG_WATCHING_ENABLED === 'true') {
   mrtgWatchStarter()
 }
 
+
+app_gate.register(cors, {
+  origin: '*', // Adjust as needed
+  methods: ['GET', 'POST', 'OPTIONS'], // Include OPTIONS if needed
+})
+app_gate.register(authPlugin)
 app_gate.register(require('@fastify/formbody'))
 app_gate.register(require('./routes/callback.route'), { prefix: '/api/liqpay/callback' })
-app_gate.register(authPlugin)
 
-module.exports = { app, getUrls, app_gate, redirectServer, redirectApiServer, credentials }
+
+module.exports = { app, getUrls, app_gate, redirectServer, redirectApiServer, credentials, credentials_gate }
