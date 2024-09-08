@@ -6,6 +6,7 @@ const writeFile = util.promisify(fs.writeFile)
 const { runCommand } = require('../utils/commandsOS')
 const locks = {}
 const paymentService = require('./paymentService')
+const payment_to_db = require('../db-api/requests').payment_to_db
 
 const URL = process.env.URL
 const AUTH_TOKEN = process.env.AUTH_TOKEN
@@ -19,7 +20,6 @@ module.exports.getInvoice = async function (ipAddress) {
     return false
   }
 }
-
 
 module.exports.execServiceContinued = async function (ipAddress) {
   if (process.env.PLATFORM !== 'freebsd') {
@@ -95,6 +95,7 @@ module.exports.execGetPayLink = async function (ipAddress, amount) {
         const { organization_abbreviation, payment_code } = responseData
         console.log(organization_abbreviation, payment_code)
         const linkURI = await paymentService.formPaymentLink(ipAddress, organization_abbreviation, payment_code, amount)
+        await payment_to_db(ipAddress, amount)
         const message = {
           linkURI,
           user_info
@@ -154,3 +155,4 @@ async function getReceipt(ipAddress) {
     return null
   }
 }
+
