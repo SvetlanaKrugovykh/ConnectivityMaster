@@ -83,3 +83,9 @@ module.exports.abonentGetPayLink = async function (request, reply) {
   }
   return reply.send(message)
 }
+
+module.exports.GetIP = async function (request, reply) {
+  const ipAddress = request.ip
+  console.log('Request GetIP from ipAddress: ', ipAddress)
+  return reply.send(ipAddress)
+}
