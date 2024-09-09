@@ -23,12 +23,5 @@ module.exports = (fastify, _opts, done) => {
     preHandler: [],
   })
 
-  fastify.route({
-    method: 'GET',
-    url: '/get-ip/',
-    handler: redirectApiController.GetIP,
-    preHandler: [],
-  })
-
   done()
 }

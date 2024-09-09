@@ -39,3 +39,9 @@ module.exports.getCallback = function (abbreviation) {
     }
   }
 }
+
+module.exports.GetIP = async function (request, reply) {
+  const ipAddress = request.ip
+  console.log('Request GetIP from ipAddress: ', ipAddress)
+  return reply.send(ipAddress)
+}

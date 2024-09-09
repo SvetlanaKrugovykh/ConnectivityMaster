@@ -44,5 +44,14 @@ module.exports = (fastify, _opts, done) => {
     schema: liqCallBackSchema
   })
 
+  fastify.route({
+    method: 'GET',
+    url: '/get-ip/',
+    handler: callbackController.GetIP,
+    preHandler: [
+      isLiqAuthorizedGuard
+    ],
+  })
+
   done()
 }
