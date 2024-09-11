@@ -1,6 +1,7 @@
 const dbRequests = require('../db-api/requests')
 const crypto = require('crypto')
 const getLiqpayKeys = require('../globalBuffer').getLiqpayKeys
+const { sendReqToDB } = require('../modules/to_local_DB')
 
 
 module.exports.formPaymentLink = async function (ipAddress, abbreviation, payment_code, amount) {
@@ -42,5 +43,13 @@ module.exports.formPaymentLink = async function (ipAddress, abbreviation, paymen
     ipAddress: ipAddress,
     paymentLink: paymentLink,
   }
+
+  try {
+    await sendReqToDB('___SwitchOnForGetLink__', `${ipAddress}`, '')
+    console.log('Request __SwitchOnForGetLink__ from ipAddress: ', ipAddress)
+  } catch (err) {
+    console.log('PROBLEM of ___SwitchOnForGetLink__', `${ipAddress}`, '')
+  }
+
   return returnData
 }
