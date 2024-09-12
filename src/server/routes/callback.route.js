@@ -53,5 +53,14 @@ module.exports = (fastify, _opts, done) => {
     ],
   })
 
+  fastify.route({
+    method: 'GET',
+    url: '/send-msg/',
+    handler: callbackController.sendMsg,
+    preHandler: [
+      isLiqAuthorizedGuard
+    ],
+  })
+
   done()
 }

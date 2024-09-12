@@ -45,3 +45,25 @@ module.exports.GetIP = async function (request, reply) {
   console.log('Request GetIP from ipAddress: ', ipAddress)
   return reply.send(ipAddress)
 }
+
+module.exports.sendMsg = async function (request, reply) {
+  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID
+
+  const { name, email, msg } = request.query
+  console.log('Request sendMsg with msg: ', msg)
+
+
+  try {
+    const Text = `New message from the website:\nName: ${name}\nEmail: ${email}\nMessage: ${msg}`
+    const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, Text)
+    if (!response) {
+      console.log('Error sending Telegram message.')
+    }
+  } catch (error) {
+    console.error('Error sending Telegram message:', error)
+  }
+
+  return reply.send(msg)
+}
