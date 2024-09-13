@@ -66,5 +66,5 @@ module.exports.sendMsg = async function (request, reply) {
     console.error('Error sending Telegram message:', error)
   }
 
-  return reply.send(msg)
+  return reply.send(message)
 }
