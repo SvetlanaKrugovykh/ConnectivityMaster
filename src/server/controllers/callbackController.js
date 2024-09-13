@@ -2,6 +2,7 @@ const HttpError = require('http-errors')
 const crypto = require('crypto')
 const dbRequests = require('../db-api/requests')
 const getLiqpayKeys = require('../globalBuffer').getLiqpayKeys
+const { sendToChat } = require('../modules/to_local_DB')
 
 module.exports.getCallback = function (abbreviation) {
   return async function (request, reply) {
@@ -47,16 +48,16 @@ module.exports.GetIP = async function (request, reply) {
 }
 
 module.exports.sendMsg = async function (request, reply) {
-  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
   const telegramChatId = process.env.TELEGRAM_CHAT_ID
+  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
 
-  const { name, email, msg } = request.query
-  console.log('Request sendMsg with msg: ', msg)
+  const { name, email, message } = request.query
+  console.log('Request sendMsg with msg: ', message)
 
 
   try {
-    const Text = `New message from the website:\nName: ${name}\nEmail: ${email}\nMessage: ${msg}`
+    const Text = `New message from the website:\nName: ${name}\nEmail: ${email}\nMessage: ${message}`
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, Text)
     if (!response) {
       console.log('Error sending Telegram message.')
