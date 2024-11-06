@@ -78,7 +78,9 @@ async function processLogsFile(logFile) {
         if (data[i] !== undefined) await processAndSaveData(serverId, subnet, data[i], date, hour, i)
       }
     }
+    console.log(`${new Date()}:SAVE_TO_LOCAL_DB start ${subnet} ${date} ${hour}`)
     if (process.env.SAVE_TO_LOCAL_DB === 'true') processAndSaveDataToLocalDB('__traffic__', serverId, subnet, localData, date, hour)
+    console.log(`${new Date()}:SAVE_TO_LOCAL_DB finish ${subnet} ${date} ${hour}`)
     return ('Data saved successfully.')
   } catch (err) {
     console.error('Error processing file:', err)
