@@ -4,6 +4,14 @@ const HOST = process.env.HOST || '127.0.0.1'
 const API_GATE_PORT = Number(process.env.API_GATE_PORT) || 8083
 const API_GATE_HOST = process.env.API_GATE_HOST || '127.0.0.1'
 
+const updateTables = require('./db/tablesUpdate').updateTables
+
+try {
+  updateTables()
+} catch (err) {
+  console.log(err)
+}
+
 app.listen({ port: process.env.PORT || 8080, host: HOST }, (err, address) => {
   if (err) {
     app.log.error(err)

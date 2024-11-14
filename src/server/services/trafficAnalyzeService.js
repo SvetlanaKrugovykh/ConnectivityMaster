@@ -2,6 +2,7 @@ const fs = require('fs')
 const readline = require('readline')
 const admin = require('firebase-admin')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
+const { importData } = require('../db/tablesUpdate')
 
 const logFiles = [process.env.PF_LOG_FILE168, process.env.PF_LOG_FILE10]
 const macsFile = process.env.MACS_FILE
@@ -10,7 +11,6 @@ const serverId = process.env.SERVER_ID
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  //databaseURL: FIRESTORE_DB_URL
 })
 const firestore = admin.firestore()
 
@@ -28,15 +28,29 @@ module.exports.macSaving = async function () {
   const message = `${macsFile} => ${processMessage}`
   return message
 }
+
 async function processLogsFile(logFile) {
 
   const subnet = logFile.includes('168') ? '168' : '10'
 
   try {
+
+    if (process.env.SAVE_TO_LOCAL_POSTGRES === 'true') {
+      console.log(`${new Date()}:SAVE_TO_POSTGRES_DB start ${subnet}`)
+      await importData(logFile)
+      console.log(`${new Date()}:SAVE_TO_POSTGRES_DB finish ${subnet}`)
+      return ('Data saved to Postgres successfully.')
+    }
+
+
     const rl = readline.createInterface({
       input: fs.createReadStream(logFile),
       crlfDelay: Infinity,
     })
+
+    const datedoc = admin.firestore.Timestamp.fromDate(new Date(`${date}T${hourValue}:59:59`))
+    const hourValue = parseInt(hour).toString().padStart(2, '0')
+    const newData = { datedoc, hour, subnet, serverId, logs: localData }
 
     let data = [[]]
     const localData = []
