@@ -14,7 +14,7 @@ const pool = new Pool({
 })
 
 const tableQueries = {
-  traffic_data: `CREATE TABLE traffic_data (
+  traffic_data: `CREATE TABLE IF NOT EXISTS traffic_data (
     id SERIAL PRIMARY KEY,
     timestamp DATE NOT NULL,
     hour INTEGER NOT NULL,
@@ -62,7 +62,7 @@ async function checkAndCreateTable(tableName) {
 
 async function createTable(tableName) {
   try {
-    await client.query(tableQueries[tableName])
+    await pool.query(tableQueries[tableName])
     console.log(`Table ${tableName} created successfully.`)
   } catch (err) {
     console.error(`Error creating table ${tableName}:`, err)
