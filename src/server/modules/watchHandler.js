@@ -84,7 +84,31 @@ async function sendTelegramMessage(message) {
   try {
     let modifiedText = message.replace("alive", "✅")
     modifiedText = modifiedText.replace("dead", "❌")
+    await sendTelegramMessageToExceptionWoda(message)
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, modifiedText)
+    if (!response) {
+      console.log('Error sending Telegram message.')
+    }
+  } catch (error) {
+    console.error('Error sending Telegram message:', error)
+  }
+}
+
+async function sendTelegramMessageToExceptionWoda(message) {
+  try {
+    if (!message.includes('WODA')) {
+      return
+    }
+  } catch (error) {
+    console.error('Error message.includes(WODA)', error)
+    return
+  }
+
+  const EXCEPTION_ID_WODA = process.env.TELEGRAM_EXCEPTION_ID_WODA
+  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
+
+  try {
+    const response = await sendToChat(apiUrl, telegramBotToken, EXCEPTION_ID_WODA, message)
     if (!response) {
       console.log('Error sending Telegram message.')
     }
