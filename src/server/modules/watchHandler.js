@@ -105,10 +105,11 @@ async function sendTelegramMessageToExceptionWoda(message) {
   }
 
   const EXCEPTION_ID_WODA = process.env.TELEGRAM_EXCEPTION_ID_WODA
-  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
+  const telegramBotTokenSilver = process.env.TELEGRAM_BOT_TOKEN_SILVER
+  const apiUrl = `https://api.telegram.org/bot${telegramBotTokenSilver}/sendMessage`
 
   try {
-    const response = await sendToChat(apiUrl, telegramBotToken, EXCEPTION_ID_WODA, message)
+    const response = await sendToChat(apiUrl, telegramBotTokenSilver, EXCEPTION_ID_WODA, message)
     if (!response) {
       console.log('Error sending Telegram message.')
     }
