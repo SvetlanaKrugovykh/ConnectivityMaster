@@ -96,9 +96,10 @@ async function sendTelegramMessage(message) {
 
 async function sendTelegramMessageToExceptionWoda(message) {
   try {
-    if (!message.includes('WODA')) {
+    if (!message.includes('WODA') && !message.includes('GARAZH_SAVCHENKO')) {
       return
     }
+
   } catch (error) {
     console.error('Error message.includes(WODA)', error)
     return
@@ -117,6 +118,7 @@ async function sendTelegramMessageToExceptionWoda(message) {
     console.error('Error sending Telegram message:', error)
   }
 }
+
 //#endregion
 
 module.exports = { handleStatusChange }
