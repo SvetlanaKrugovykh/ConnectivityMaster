@@ -96,12 +96,12 @@ async function sendTelegramMessage(message) {
 
 async function sendTelegramMessageToExceptionWoda(message) {
   try {
-    if (!message.includes('WODA') && !message.includes('GARAZH_SAVCHENKO')) {
+    if (!message.includes('WODA') && !message.includes('GARAZH_SAVCHENKO' && !message.includes('VLans874'))) {
       return
     }
 
   } catch (error) {
-    console.error('Error message.includes(WODA)', error)
+    console.error('Error message.includes(EXCEPTION_Msgs)', error)
     return
   }
 
