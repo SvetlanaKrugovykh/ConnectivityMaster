@@ -38,8 +38,13 @@ async function sendReqToDB(reqType, data, _text) {
   }
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function sendToChat(url_address, token, chatId, message) {
   try {
+    await delay(1000)
     const response = await axios({
       method: 'post',
       url: url_address,

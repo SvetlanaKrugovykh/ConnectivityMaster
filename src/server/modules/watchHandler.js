@@ -110,7 +110,9 @@ async function sendTelegramMessageToExceptionWoda(message) {
   const apiUrl = `https://api.telegram.org/bot${telegramBotTokenSilver}/sendMessage`
 
   try {
-    const response = await sendToChat(apiUrl, telegramBotTokenSilver, EXCEPTION_ID_WODA, message)
+    let modifiedText = message.replace("alive", "✅")
+    modifiedText = modifiedText.replace("dead", "❌")
+    const response = await sendToChat(apiUrl, telegramBotTokenSilver, EXCEPTION_ID_WODA, modifiedText)
     if (!response) {
       console.log('Error sending Telegram message.')
     }
