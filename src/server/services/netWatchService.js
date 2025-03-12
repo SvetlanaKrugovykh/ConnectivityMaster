@@ -1,4 +1,4 @@
-const { netWatchPingerProbe, loadipList } = require('./ipNetWatchService.js')
+const { netWatchPingerProbe, netWatchPingerWithDelay, loadipList } = require('./ipNetWatchService.js')
 const { checkServiceStatus, loadServicesList } = require('./portNetWatchService.js')
 const { checksnmpObjectStatus, loadSnmpObjectsList } = require('./snmpNetWatchService.js')
 const { loadSnmpMrtgObjectsList, loadSnmpMrtgObjectData } = require('./snmpMrtgService')
@@ -13,6 +13,7 @@ async function netWatchStarter() {
   const pingPoolingInterval = parseInt(process.env.PING_POOLING_INTERVAL) * 1000
   const servicesPoolingInterval = parseInt(process.env.SERVICES_POOLING_INTERVAL) * 1000
   const snmpPoolingInterval = parseInt(process.env.SNMP_POOLING_INTERVAL) * 1000 || 320000
+  const pingWithDelayPoolingInterval = parseInt(process.env.PING_WITH_DELAY_POOLING_INTERVAL) * 1000 || 60000
 
   if (process.env.NETWATCHING_TEST_MODE === 'true') {
     console.log('NETWATCHING_TEST_MODE is true')
@@ -21,6 +22,8 @@ async function netWatchStarter() {
     servicesList = testServiceList
     snmpObjectsList = testSnmpObjectsList
   }
+
+  const ipCheckDelayList = ipList.filter(ip => ip.ckeckDelay).map(ip => ip.ip_address)
 
   setInterval(() => {
     try {
@@ -31,6 +34,14 @@ async function netWatchStarter() {
       console.log(err)
     }
   }, pingPoolingInterval)
+
+  setInterval(() => {
+    try {
+      netWatchPingerWithDelay(ipCheckDelayList)
+    } catch (err) {
+      console.log(err)
+    }
+  }, pingWithDelayPoolingInterval)
 
   setInterval(() => {
     try {

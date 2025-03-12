@@ -84,6 +84,8 @@ async function sendTelegramMessage(message) {
   try {
     let modifiedText = message.replace("alive", "✅")
     modifiedText = modifiedText.replace("dead", "❌")
+    modifiedText = modifiedText.replace("Warning", "⚠️")
+    modifiedText = modifiedText.replace("Info", "ℹ️")
     await sendTelegramMessageToExceptionWoda(message)
     const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, modifiedText)
     if (!response) {
@@ -123,4 +125,4 @@ async function sendTelegramMessageToExceptionWoda(message) {
 
 //#endregion
 
-module.exports = { handleStatusChange }
+module.exports = { handleStatusChange, sendTelegramMessage }

@@ -1,6 +1,7 @@
 const ping = require('ping')
 const { sendReqToDB } = require('../modules/to_local_DB.js')
 const { handleStatusChange } = require('../modules/watchHandler.js')
+const { sendTelegramMessage } = require('../modules/watchHandler.js')
 
 const Status = {
   ALIVE: 'alive',
@@ -45,6 +46,74 @@ function netWatchPingerProbe(ip_address) {
   }
 }
 
+async function netWatchPingerWithDelay(ipAddresses) {
+  try {
+    const failedAttempts = {}
+    const lossThreshold = 0.2  // 20% packet loss threshold
+
+    ipAddresses.forEach(ip => {
+      failedAttempts[ip] = {
+        totalPings: 0,
+        lostPings: 0,
+        rttSum: 0
+      }
+    })
+
+    const probeHostWithDelay = function (ip_address) {
+      return new Promise((resolve, reject) => {
+        const pingCount = 50
+
+        let completedPings = 0
+        let lostPings = 0
+        let rttSum = 0
+
+        const handlePingResult = (isAlive, time) => {
+          completedPings++
+          if (isAlive) {
+            rttSum += time
+          } else {
+            lostPings++
+          }
+
+          if (completedPings === pingCount) {
+            failedAttempts[ip_address].totalPings = completedPings
+            failedAttempts[ip_address].lostPings = lostPings
+            failedAttempts[ip_address].rttSum = rttSum
+
+            const lossPercentage = lostPings / pingCount
+            if (lossPercentage > lossThreshold) {
+              handlePacketLoss(ip_address, lossPercentage)
+            } else {
+              handleNormalDelay(ip_address, rttSum / completedPings)
+            }
+            resolve()
+          }
+        }
+
+        for (let i = 0; i < pingCount; i++) {
+          ping.sys.probe(ip_address, function (isAlive, time) {
+            handlePingResult(isAlive, time)
+          })
+        }
+      })
+    }
+
+    const promises = ipAddresses.map(ip => probeHostWithDelay(ip))
+
+    await Promise.all(promises)
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+
+function handlePacketLoss(ip_address, lossPercentage) {
+  sendTelegramMessage(`Warning: High packet loss (${Math.round(lossPercentage * 100)}%) detected at ${ip_address}.`)
+}
+
+function handleNormalDelay(ip_address, avgRTT) {
+  sendTelegramMessage(`Info: Host ${ip_address} has average RTT of ${Math.round(avgRTT)}ms with acceptable packet loss.`)
+}
 
 
 
@@ -86,9 +155,6 @@ async function handleAliveStatus(ip_address) {
   }
 }
 
-
-
-
 async function loadipList() {
   try {
     const data = await sendReqToDB('__GetIpAddressesForWatching__', '', '')
@@ -100,4 +166,4 @@ async function loadipList() {
   }
 }
 
-module.exports = { netWatchPingerProbe, loadipList }
+module.exports = { netWatchPingerProbe, netWatchPingerWithDelay, loadipList }
