@@ -108,6 +108,7 @@ async function netWatchPingerWithDelay(ipAddresses) {
 
 
 function handlePacketLoss(ip_address, lossPercentage) {
+  console.log(`Warning: High packet loss (${Math.round(lossPercentage * 100)}%) detected at ${ip_address}.`)
   sendTelegramMessage(`Warning: High packet loss (${Math.round(lossPercentage * 100)}%) detected at ${ip_address}.`)
 }
 
