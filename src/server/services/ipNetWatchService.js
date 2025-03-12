@@ -112,7 +112,7 @@ function handlePacketLoss(ip_address, lossPercentage) {
 }
 
 function handleNormalDelay(ip_address, avgRTT) {
-  sendTelegramMessage(`Info: Host ${ip_address} has average RTT of ${Math.round(avgRTT)}ms with acceptable packet loss.`)
+  // sendTelegramMessage(`Info: Host ${ip_address} has average RTT of ${Math.round(avgRTT)}ms with acceptable packet loss.`)
 }
 
 
