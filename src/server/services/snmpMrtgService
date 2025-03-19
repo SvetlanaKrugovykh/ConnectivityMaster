@@ -1,5 +1,6 @@
 const { runCommand } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB')
+const { mrtgToDB } = require('../db/mrtgRecords')
 
 async function loadSnmpMrtgObjectsList() {
   try {
@@ -33,7 +34,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
         data.push(snmpData)
       } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}`) }
     }
-    await sendReqToDB('__mrtg__', data, '')
+    await mrtgToDB(data)
   } catch (err) {
     console.log(err)
   }
