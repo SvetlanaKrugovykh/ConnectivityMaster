@@ -1,12 +1,14 @@
 const { runCommand } = require('../utils/commandsOS')
 const { sendReqToDB } = require('../modules/to_local_DB')
 const { mrtgToDB } = require('../db/mrtgRecords')
+require('dotenv').config()
 
 async function loadSnmpMrtgObjectsList() {
   try {
     const data = await sendReqToDB('__GetSnmpMrtgObjects__', '', '')
     const parsedData = JSON.parse(data)
     const snmpObjectsList = parsedData.ResponseArray
+    if (process.env.MRTG_DEBUG === '9') console.log('mrtgObjs IN is', snmpObjectsList)
     return snmpObjectsList
   } catch (err) {
     console.log(err)
@@ -19,6 +21,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
   const data = []
 
   try {
+    if (process.env.MRTG_DEBUG === '9') console.log('snmpMrtgObjectsList before process', snmpMrtgObjectsList)
     for (let snmpObject of snmpMrtgObjectsList) {
       const unixTimestamp = Math.floor(Date.now() / 1000)
       try {
@@ -31,6 +34,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
           port: snmpObject.port,
           unixTimestamp: unixTimestamp
         }
+        if (process.env.MRTG_DEBUG === '9') console.log('snmpData is', snmpData)
         data.push(snmpData)
       } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}`) }
     }

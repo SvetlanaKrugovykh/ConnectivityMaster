@@ -13,11 +13,11 @@ const pool = new Pool({
 
 module.exports.mrtgToDB = async function (data) {
   try {
-    const parsedData = JSON.parse(data)
-    const ipList = parsedData.ResponseArray
+    if (process.env.MRTG_DEBUG === '9') console.log('MRTG data for DB:', data)
     const mrtgRecords = []
 
-    for (const ip of ipList) {
+    for (const ip of data) {
+      if (process.env.MRTG_DEBUG === '9') console.log('MRTG data for DB:', ip)
       const { ip_address, oid, value, port } = ip
 
       if (oid.includes('ifInOctets')) {
