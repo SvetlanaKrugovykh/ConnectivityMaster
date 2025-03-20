@@ -42,7 +42,8 @@ module.exports.mrtgToDB = async function (data) {
     }
 
     for (const record of mrtgRecords) {
-      await pool.query(
+      if (process.env.MRTG_DEBUG === '9') console.log('Record being inserted:', record)
+      const result = await pool.query(
         `
         INSERT INTO mrtg_data (timestamp, ip, dev_port, object_name, object_value_in, object_value_out)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -56,8 +57,8 @@ module.exports.mrtgToDB = async function (data) {
           record.object_value_out,
         ]
       )
+      console.log('Insert result:', result.rowCount)
     }
-    console.log('MRTG data inserted successfully')
   } catch (err) {
     console.log('Error processing MRTG data:', err.message)
   }
