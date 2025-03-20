@@ -24,7 +24,7 @@ const tableQueries = {
   )`,
   mrtg_data: `CREATE TABLE IF NOT EXISTS mrtg_data (
     id SERIAL PRIMARY KEY,
-    timestamp DATE NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
     ip VARCHAR(15) NOT NULL,
     dev_port INTEGER NOT NULL,
     object_name VARCHAR(50) NOT NULL,
