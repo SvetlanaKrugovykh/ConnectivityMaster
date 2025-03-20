@@ -16,7 +16,6 @@ const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
 
 async function generateMrtgReport() {
   try {
-    // 1. Извлекаем данные за последние 24 часа
     const query = `
       SELECT ip, dev_port, object_name, object_value_in, object_value_out, timestamp
       FROM mrtg_data
@@ -25,29 +24,27 @@ async function generateMrtgReport() {
     `
     const { rows } = await pool.query(query)
 
-    // 2. Группируем данные по ip и dev_port
     const groupedData = {}
     rows.forEach(row => {
-      const key = `${row.ip}:${row.dev_port}`
+      const key = `${row.ip}:${row.dev_port}:${row.object_name}`
       if (!groupedData[key]) {
-        groupedData[key] = { ip: row.ip, dev_port: row.dev_port, timestamps: [], inDiffs: [], outDiffs: [] }
+        groupedData[key] = { ip: row.ip, dev_port: row.dev_port, object_name: row.object_name, timestamps: [], diffs: [] }
       }
 
       const last = groupedData[key]
       if (last.timestamps.length > 0) {
-        // Рассчитываем разницы значений
-        const inDiff = (row.object_value_in - last.inLast) * 8 / (40 * 1000000) // Mbps
-        const outDiff = (row.object_value_out - last.outLast) * 8 / (40 * 1000000) // Mbps
-        last.inDiffs.push(inDiff)
-        last.outDiffs.push(outDiff)
+        // Рассчитываем разницу значений (только для текущего object_name)
+        const diff =
+          row.object_name === 'ifInOctets'
+            ? (row.object_value_in - last.lastValue) * 8 / (40 * 1000000) // Mbps
+            : (row.object_value_out - last.lastValue) * 8 / (40 * 1000000) // Mbps
+        last.diffs.push(diff > 0 ? diff : 0) // Исключаем отрицательные значения
       }
 
       last.timestamps.push(row.timestamp)
-      last.inLast = row.object_value_in
-      last.outLast = row.object_value_out
+      last.lastValue = row.object_name === 'ifInOctets' ? row.object_value_in : row.object_value_out
     })
 
-    // 3. Генерируем графики для каждой пары ip и dev_port
     const charts = []
     for (const key in groupedData) {
       const data = groupedData[key]
@@ -57,17 +54,10 @@ async function generateMrtgReport() {
           labels: data.timestamps.map(ts => new Date(ts).toLocaleTimeString()),
           datasets: [
             {
-              label: 'Input Traffic (Mbps)',
-              data: data.inDiffs,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              fill: true,
-            },
-            {
-              label: 'Output Traffic (Mbps)',
-              data: data.outDiffs,
-              borderColor: 'rgba(255, 99, 132, 1)',
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              label: `${data.object_name} Traffic (Mbps)`,
+              data: data.diffs,
+              borderColor: data.object_name === 'ifInOctets' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
+              backgroundColor: data.object_name === 'ifInOctets' ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)',
               fill: true,
             },
           ],
@@ -88,12 +78,13 @@ async function generateMrtgReport() {
       charts.push({ ip: data.ip, dev_port: data.dev_port, chartImage })
     }
 
-    // 4. Генерируем HTML-отчет
     const templatePath = path.join(__dirname, 'template.ejs')
+
     const html = await ejs.renderFile(templatePath, { charts })
 
-    // 5. Сохраняем HTML-отчет
-    const outputPath = path.join(__dirname, 'mrtg_report.html')
+    const TEMP_CATALOG = process.env.TEMP_CATALOG
+    let outputPath = `${TEMP_CATALOG}__.html`
+
     fs.writeFileSync(outputPath, html)
     console.log(`Report generated: ${outputPath}`)
   } catch (err) {
