@@ -1,4 +1,5 @@
 const abonentsController = require('../controllers/abonentsController')
+const mrtgController = require('../controllers/mrtgController')
 const isAuthorizedGuard = require('../guards/is-authorized.guard')
 const abonentSwitchOffSchema = require('../schemas/abonent-switch-off.schema')
 const abonentSwitchRedirSchema = require('../schemas/abonent-switch-redir.schema')
@@ -11,6 +12,16 @@ module.exports = (fastify, _opts, done) => {
     method: 'POST',
     url: '/abonents/switch-off/',
     handler: abonentsController.abonentSwitchOff,
+    preHandler: [
+      isAuthorizedGuard
+    ],
+    schema: abonentSwitchOffSchema
+  })
+
+  fastify.route({
+    method: 'POST',
+    url: '/abonents/mrtg-report/',
+    handler: mrtgController.getMrtg,
     preHandler: [
       isAuthorizedGuard
     ],

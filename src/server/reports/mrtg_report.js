@@ -14,7 +14,7 @@ const pool = new Pool({
   port: process.env.TRAFFIC_DB_PORT,
 })
 
-const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
+const chartJSNodeCanvas = '' //new ChartJSNodeCanvas({ width: 800, height: 400 })
 
 module.exports.generateMrtgReport = async function (chatID) {
   try {
@@ -90,7 +90,7 @@ module.exports.generateMrtgReport = async function (chatID) {
 
     const html = await ejs.renderFile(templatePath, { charts })
 
-    const TEMP_CATALOG = process.env.TEMP_CATALOG
+    const TEMP_CATALOG = process.env.TEMP_CATALOG || './'
     const outputPath = `${TEMP_CATALOG}mrtg_report.html`
 
     fs.writeFileSync(outputPath, html)
@@ -106,9 +106,10 @@ module.exports.generateMrtgReport = async function (chatID) {
     const response = await axios.post(url, formData, {
       headers: formData.getHeaders(),
     })
-    return response.data
+
+    return { success: true, data: response.data }
   } catch (err) {
     console.error('Error generating MRTG report:', err.message)
+    return { success: false, error: err.message }
   }
 }
-
