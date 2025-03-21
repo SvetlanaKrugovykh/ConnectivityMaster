@@ -66,4 +66,4 @@ redirectServer.listen({
 
 //TODO - add the following code to the end of the file
 const { generateMrtgReport } = require('./reports/mrtg_report')
-generateMrtgReport()
+//generateMrtgReport()

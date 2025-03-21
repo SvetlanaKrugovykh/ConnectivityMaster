@@ -3,6 +3,8 @@ const { ChartJSNodeCanvas } = require('chartjs-node-canvas')
 const fs = require('fs')
 const ejs = require('ejs')
 const path = require('path')
+const axios = require('axios')
+const FormData = require('form-data')
 
 const pool = new Pool({
   user: process.env.TRAFFIC_DB_USER,
@@ -14,7 +16,7 @@ const pool = new Pool({
 
 const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
 
-async function generateMrtgReport() {
+module.exports.generateMrtgReport = async function (chatID) {
   try {
     const query = `
       SELECT ip, dev_port, object_name, object_value_in, object_value_out, timestamp
@@ -26,23 +28,22 @@ async function generateMrtgReport() {
 
     const groupedData = {}
     rows.forEach(row => {
-      const key = `${row.ip}:${row.dev_port}:${row.object_name}`
+      const key = `${row.ip}:${row.dev_port}`
       if (!groupedData[key]) {
-        groupedData[key] = { ip: row.ip, dev_port: row.dev_port, object_name: row.object_name, timestamps: [], diffs: [] }
+        groupedData[key] = { ip: row.ip, dev_port: row.dev_port, timestamps: [], inDiffs: [], outDiffs: [] }
       }
 
       const last = groupedData[key]
       if (last.timestamps.length > 0) {
-        // Рассчитываем разницу значений (только для текущего object_name)
-        const diff =
-          row.object_name === 'ifInOctets'
-            ? (row.object_value_in - last.lastValue) * 8 / (40 * 1000000) // Mbps
-            : (row.object_value_out - last.lastValue) * 8 / (40 * 1000000) // Mbps
-        last.diffs.push(diff > 0 ? diff : 0) // Исключаем отрицательные значения
+        const inDiff = (row.object_value_in - last.inLast) * 8 / (40 * 1000000) // Mbps
+        const outDiff = (row.object_value_out - last.outLast) * 8 / (40 * 1000000) // Mbps
+        last.inDiffs.push(inDiff > 0 ? inDiff : 0)
+        last.outDiffs.push(outDiff > 0 ? outDiff : 0)
       }
 
       last.timestamps.push(row.timestamp)
-      last.lastValue = row.object_name === 'ifInOctets' ? row.object_value_in : row.object_value_out
+      last.inLast = row.object_value_in
+      last.outLast = row.object_value_out
     })
 
     const charts = []
@@ -54,10 +55,17 @@ async function generateMrtgReport() {
           labels: data.timestamps.map(ts => new Date(ts).toLocaleTimeString()),
           datasets: [
             {
-              label: `${data.object_name} Traffic (Mbps)`,
-              data: data.diffs,
-              borderColor: data.object_name === 'ifInOctets' ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
-              backgroundColor: data.object_name === 'ifInOctets' ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)',
+              label: 'Input Traffic (Mbps)',
+              data: data.inDiffs,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: true,
+            },
+            {
+              label: 'Output Traffic (Mbps)',
+              data: data.outDiffs,
+              borderColor: 'rgba(0, 76, 153, 1)',
+              backgroundColor: 'rgba(0, 76, 153, 0.2)',
               fill: true,
             },
           ],
@@ -83,13 +91,24 @@ async function generateMrtgReport() {
     const html = await ejs.renderFile(templatePath, { charts })
 
     const TEMP_CATALOG = process.env.TEMP_CATALOG
-    let outputPath = `${TEMP_CATALOG}__.html`
+    const outputPath = `${TEMP_CATALOG}mrtg_report.html`
 
     fs.writeFileSync(outputPath, html)
     console.log(`Report generated: ${outputPath}`)
+
+    const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
+    const telegramChatId = chatID
+    const url = `https://api.telegram.org/bot${telegramBotToken}/sendDocument`
+    const formData = new FormData()
+    formData.append('chat_id', telegramChatId)
+    formData.append('document', fs.createReadStream(outputPath))
+
+    const response = await axios.post(url, formData, {
+      headers: formData.getHeaders(),
+    })
+    return response.data
   } catch (err) {
     console.error('Error generating MRTG report:', err.message)
   }
 }
 
-module.exports = { generateMrtgReport }
