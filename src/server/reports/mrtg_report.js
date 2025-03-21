@@ -17,9 +17,10 @@ const pool = new Pool({
 
 module.exports.generateMrtgReport = async function (chatID) {
   try {
-    console.log('Initializing ChartJSNodeCanvas...')
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
     console.log('ChartJSNodeCanvas initialized successfully')
+
+    const INTERVAL_SECONDS = parseInt(process.env.SNMP_MRTG_POOLING_INTERVAL)
 
     const query = `
       SELECT ip, dev_port, object_name, object_value_in, object_value_out, timestamp
@@ -31,6 +32,9 @@ module.exports.generateMrtgReport = async function (chatID) {
 
     const groupedData = {}
     rows.forEach(row => {
+      const PortNumber = Number(row.dev_port)
+      let koef = 1
+      if (PortNumber > 10 && PortNumber < 25) koef = 40
       const key = `${row.ip}:${row.dev_port}`
       if (!groupedData[key]) {
         groupedData[key] = { ip: row.ip, dev_port: row.dev_port, timestamps: [], inDiffs: [], outDiffs: [] }
@@ -38,8 +42,8 @@ module.exports.generateMrtgReport = async function (chatID) {
 
       const last = groupedData[key]
       if (last.timestamps.length > 0) {
-        const inDiff = (row.object_value_in - last.inLast) * 8 / (40 * 1000000) // Mbps
-        const outDiff = (row.object_value_out - last.outLast) * 8 / (40 * 1000000) // Mbps
+        const inDiff = (row.object_value_in - last.inLast) * 8 / (INTERVAL_SECONDS * koef * 1000000) // Mbps
+        const outDiff = (row.object_value_out - last.outLast) * 8 / (INTERVAL_SECONDS * koef * 1000000) // Mbps        
         last.inDiffs.push(inDiff > 0 ? inDiff : 0)
         last.outDiffs.push(outDiff > 0 ? outDiff : 0)
       }
@@ -55,7 +59,7 @@ module.exports.generateMrtgReport = async function (chatID) {
       const chartConfig = {
         type: 'line',
         data: {
-          labels: data.timestamps.map(ts => new Date(ts).toLocaleTimeString()),
+          labels: data.timestamps.map(ts => new Date(ts).toISOString().replace('T', ' ').substring(11, 19)), // HH:MM:SS
           datasets: [
             {
               label: 'Input Traffic (Mbps)',
@@ -80,7 +84,10 @@ module.exports.generateMrtgReport = async function (chatID) {
           },
           scales: {
             x: { title: { display: true, text: 'Time' } },
-            y: { title: { display: true, text: 'Traffic (Mbps)' } },
+            y: {
+              title: { display: true, text: 'Traffic (Mbps)' },
+              ticks: { callback: value => `${value.toFixed(2)} Mbps` }
+            },
           },
         },
       }
