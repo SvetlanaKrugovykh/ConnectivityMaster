@@ -106,11 +106,11 @@ module.exports.generateMrtgReport = async function (chatID) {
     formData.append('chat_id', telegramChatId)
     formData.append('document', fs.createReadStream(outputPath))
 
-    const response = await axios.post(url, formData, {
+    await axios.post(url, formData, {
       headers: formData.getHeaders(),
     })
 
-    return { success: true, data: response.data }
+    return { success: true }
   } catch (err) {
     console.error('Error generating MRTG report:', err.message)
     return { success: false, error: err.message }
