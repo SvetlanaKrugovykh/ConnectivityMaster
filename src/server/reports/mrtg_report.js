@@ -14,10 +14,13 @@ const pool = new Pool({
   port: process.env.TRAFFIC_DB_PORT,
 })
 
-const chartJSNodeCanvas = '' //new ChartJSNodeCanvas({ width: 800, height: 400 })
 
 module.exports.generateMrtgReport = async function (chatID) {
   try {
+    console.log('Initializing ChartJSNodeCanvas...')
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
+    console.log('ChartJSNodeCanvas initialized successfully')
+
     const query = `
       SELECT ip, dev_port, object_name, object_value_in, object_value_out, timestamp
       FROM mrtg_data
