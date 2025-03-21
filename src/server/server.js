@@ -61,9 +61,3 @@ redirectServer.listen({
   console.log(`${new Date()}:[Redirect] Service listening on ${address}`)
 })
 
-
-
-
-//TODO - add the following code to the end of the file
-const { generateMrtgReport } = require('./reports/mrtg_report')
-//generateMrtgReport()
