@@ -20,7 +20,7 @@ module.exports.mrtgToDB = async function (data) {
       if (process.env.MRTG_DEBUG === '9') console.log('MRTG data for DB:', ip)
       const { ip_address, oid, value, port } = ip
 
-      if (oid.includes('ifInOctets')) {
+      if (oid.includes('1.3.6.1.2.1.31.1.1.1.6')) {
         mrtgRecords.push({
           timestamp: new Date(),
           ip: ip_address,
@@ -29,7 +29,7 @@ module.exports.mrtgToDB = async function (data) {
           object_value_in: parseInt(value, 10),
           object_value_out: 0,
         })
-      } else if (oid.includes('ifOutOctets')) {
+      } else if (oid.includes('1.3.6.1.2.1.31.1.1.1.10')) {
         mrtgRecords.push({
           timestamp: new Date(),
           ip: ip_address,
