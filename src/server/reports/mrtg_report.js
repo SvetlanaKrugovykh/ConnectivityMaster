@@ -20,7 +20,7 @@ module.exports.generateMrtgReport = async function (chatID) {
     console.log('ChartJSNodeCanvas initialized successfully')
 
     const INTERVAL_SECONDS = parseInt(process.env.SNMP_MRTG_POOLING_INTERVAL)
-    const maxCounter64 = 18446744073709551615
+    const maxCounter64 = BigInt('18446744073709551615')
 
     const query = `
       SELECT ip, dev_port, object_name, object_value_in, object_value_out, timestamp
@@ -46,44 +46,46 @@ module.exports.generateMrtgReport = async function (chatID) {
       }
 
       const last = groupedData[key]
+      const row_in = BigInt(row.object_value_in)
+      const row_out = BigInt(row.object_value_out)
+      const divisor = BigInt(INTERVAL_SECONDS * 1024 * 1024)
+
+      let MAX_TRAFFIC_MBPS = 1024 * 1024
+      if (Number(row.dev_port) > 10 && Number(row.dev_port) < 25) MAX_TRAFFIC_MBPS = 1024
 
       if (last.timestamps.length > 0) {
         let inDiff, outDiff
 
-        // Рассчитываем разницу для входящего трафика
-        if (row.object_value_in >= last.inLast) {
-          inDiff = row.object_value_in - last.inLast
-        } else {
-          inDiff = maxCounter64 - last.inLast + row.object_value_in
+        if (row_in !== 0n) {
+          if (row_in >= BigInt(last.inLast)) {
+            inDiff = row_in - BigInt(last.inLast)
+          } else {
+            inDiff = maxCounter64 - BigInt(last.inLast) + row_in
+          }
+          inDiff = Number((inDiff * 8n) / divisor)
+          inDiff = Math.min(inDiff, MAX_TRAFFIC_MBPS)
+          last.inDiffs.push(inDiff > 0 ? inDiff : 0)
         }
 
-        // Рассчитываем разницу для исходящего трафика
-        if (row.object_value_out >= last.outLast) {
-          outDiff = row.object_value_out - last.outLast
-        } else {
-          outDiff = maxCounter64 - last.outLast + row.object_value_out
+        if (row_out !== 0n) {
+          if (row_out >= BigInt(last.outLast)) {
+            outDiff = row_out - BigInt(last.outLast)
+          } else {
+            outDiff = maxCounter64 - BigInt(last.outLast) + row_out
+          }
+          outDiff = Number((outDiff * 8n) / divisor)
+          outDiff = Math.min(outDiff, MAX_TRAFFIC_MBPS)
+          last.outDiffs.push(outDiff > 0 ? outDiff : 0)
         }
 
-        // Преобразуем в Mbps
-        inDiff = (inDiff * 8) / (INTERVAL_SECONDS * 1000000) // Mbps
-        outDiff = (outDiff * 8) / (INTERVAL_SECONDS * 1000000) // Mbps
-
-        // Ограничиваем выбросы
-        const MAX_TRAFFIC_MBPS = 10000 // Ограничение на 10,000 Mbps
-        inDiff = Math.min(inDiff, MAX_TRAFFIC_MBPS)
-        outDiff = Math.min(outDiff, MAX_TRAFFIC_MBPS)
-
-        // Логируем значения для проверки
         console.log(`IP: ${row.ip}, Port: ${row.dev_port}`)
         console.log(`inDiff: ${inDiff}, outDiff: ${outDiff}`)
 
-        last.inDiffs.push(inDiff > 0 ? inDiff : 0)
-        last.outDiffs.push(outDiff > 0 ? outDiff : 0)
       }
 
       last.timestamps.push(row.timestamp)
-      last.inLast = row.object_value_in
-      last.outLast = row.object_value_out
+      if (row_in !== 0n) last.inLast = row_in
+      if (row_out !== 0n) last.outLast = row_out
     })
 
     const charts = []
