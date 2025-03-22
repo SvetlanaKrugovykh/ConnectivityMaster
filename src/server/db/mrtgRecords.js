@@ -20,13 +20,19 @@ module.exports.mrtgToDB = async function (data) {
       if (process.env.MRTG_DEBUG === '9') console.log('MRTG data for DB:', ip)
       const { ip_address, oid, value, port } = ip
 
+      const parsedValue = Number(value)
+      if (isNaN(parsedValue)) {
+        console.log(`Invalid SNMP value received: ${value} (OID: ${oid})`)
+        continue
+      }
+
       if (oid.includes('1.3.6.1.2.1.31.1.1.1.6')) {
         mrtgRecords.push({
           timestamp: new Date(),
           ip: ip_address,
           dev_port: port,
-          object_name: 'ifInOctets',
-          object_value_in: parseInt(value, 10),
+          object_name: 'ifHCInOctets',
+          object_value_in: parsedValue,
           object_value_out: 0,
         })
       } else if (oid.includes('1.3.6.1.2.1.31.1.1.1.10')) {
@@ -34,9 +40,9 @@ module.exports.mrtgToDB = async function (data) {
           timestamp: new Date(),
           ip: ip_address,
           dev_port: port,
-          object_name: 'ifOutOctets',
+          object_name: 'ifHCOutOctets',
           object_value_in: 0,
-          object_value_out: parseInt(value, 10),
+          object_value_out: parsedValue,
         })
       }
     }

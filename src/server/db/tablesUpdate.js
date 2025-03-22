@@ -28,8 +28,8 @@ const tableQueries = {
     ip VARCHAR(15) NOT NULL,
     dev_port INTEGER NOT NULL,
     object_name VARCHAR(50) NOT NULL,
-    object_value_in BIGINT NOT NULL,
-    object_value_out BIGINT NOT NULL
+    object_value_in BIGINT NOT NULL DEFAULT 0,
+    object_value_out BIGINT NOT NULL DEFAULT 0
   )`,
 }
 
