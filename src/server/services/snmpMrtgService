@@ -25,24 +25,14 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
       try {
         const oid = `${snmpObject.oid}.${snmpObject.port}`
         const cmdArgs = ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, oid]
-
-        console.log(`Running command: snmpwalk ${cmdArgs.join(' ')}`)
-
         response = await runCommand('snmpwalk', cmdArgs)
-
-        console.log(`Raw response: "${response}"`)
-
         response = response.replace(/\s+/g, ' ').trim()
-
-        console.log(`Cleaned response: "${response}"`)
-
         const match = response.match(/^(\d+)$/)
         if (!match) {
           console.log(`Invalid SNMP value received: ${response} (OID: ${snmpObject.oid})`)
           continue
         }
-
-        const snmpValue = match[1] // Достаем число
+        const snmpValue = match[1]
 
         const snmpData = {
           ip_address: snmpObject.ip_address,
