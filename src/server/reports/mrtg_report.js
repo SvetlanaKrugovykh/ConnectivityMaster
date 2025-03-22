@@ -63,7 +63,10 @@ module.exports.generateMrtgReport = async function (chatID) {
           }
           inDiff = Number((inDiff * 8n) / divisor)
           inDiff = Math.min(inDiff, MAX_TRAFFIC_MBPS)
-          last.inDiffs.push(inDiff > 0 ? inDiff : 0)
+
+          if (inDiff > 0 && inDiff < MAX_TRAFFIC_MBPS) {
+            last.inDiffs.push(inDiff)
+          }
         }
         last.inLast = row_in
         last.timestamps.push(row.timestamp)
@@ -79,14 +82,14 @@ module.exports.generateMrtgReport = async function (chatID) {
           }
           outDiff = Number((outDiff * 8n) / divisor)
           outDiff = Math.min(outDiff, MAX_TRAFFIC_MBPS)
-          last.outDiffs.push(outDiff > 0 ? outDiff : 0)
+
+          if (outDiff > 0 && outDiff < MAX_TRAFFIC_MBPS) {
+            last.outDiffs.push(outDiff)
+          }
         }
         last.outLast = row_out
         last.timestamps.push(row.timestamp)
       }
-
-      console.log(`IP: ${row.ip}, Port: ${row.dev_port}`)
-      console.log(`inDiff: ${last.inDiffs[last.inDiffs.length - 1] || 0}, outDiff: ${last.outDiffs[last.outDiffs.length - 1] || 0}`)
     })
 
     const charts = []
@@ -124,10 +127,7 @@ module.exports.generateMrtgReport = async function (chatID) {
               title: { display: true, text: 'Traffic (Mbps)' },
               ticks: {
                 callback: value => {
-                  if (value >= 1000) {
-                    return (value / 1000).toFixed(2) + ' Gbps'
-                  }
-                  return value.toFixed(2) + ' Mbps'
+                  return (value / 1024).toFixed(2) + ' Mbps'
                 },
               },
             },
