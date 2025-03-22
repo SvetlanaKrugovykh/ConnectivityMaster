@@ -24,10 +24,12 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
       const unixTimestamp = Math.floor(Date.now() / 1000)
       try {
         const oid = `${snmpObject.oid}.${snmpObject.port}`
-        console.log(`Running command: snmpwalk ${cmdArgs.join(' ')}`)  // Debug //TODO: Remove
+        const cmdArgs = ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, oid]
 
-        response = await runCommand('snmpwalk', ['-v', '2c', '-c', 'public', '-OXsq', '-On', snmpObject.ip_address, oid])
-        console.log(`Response from SNMP: ${response.trim()}`)  // Debug //TODO: Remove
+        console.log(`Running command: snmpwalk ${cmdArgs.join(' ')}`)
+
+        response = await runCommand('snmpwalk', cmdArgs)
+        console.log(`Response from SNMP: ${response.trim()}`)
 
         const snmpData = {
           ip_address: snmpObject.ip_address,
@@ -37,11 +39,13 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
           unixTimestamp: unixTimestamp
         }
         data.push(snmpData)
-      } catch (err) { console.log(`Err of ${snmpObject.ip_address}:${snmpObject.oid}`) }
+      } catch (err) {
+        console.log(`Error executing SNMP command for ${snmpObject.ip_address}:${snmpObject.oid}`, err)
+      }
     }
     await mrtgToDB(data)
   } catch (err) {
-    console.log(err)
+    console.log('Critical error in loadSnmpMrtgObjectData:', err)
   }
 }
 
