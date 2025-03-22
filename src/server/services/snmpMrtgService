@@ -36,13 +36,13 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
 
         console.log(`Cleaned response: "${response}"`)
 
-        const match = response.match(/^\.?\d+(\.\d+)*\s+(\d+)$/)
+        const match = response.match(/^(\d+)$/)
         if (!match) {
           console.log(`Invalid SNMP value received: ${response} (OID: ${snmpObject.oid})`)
           continue
         }
 
-        const snmpValue = match[2]
+        const snmpValue = match[1] // Достаем число
 
         const snmpData = {
           ip_address: snmpObject.ip_address,
@@ -61,6 +61,7 @@ async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
     console.log('Critical error in loadSnmpMrtgObjectData:', err)
   }
 }
+
 
 
 module.exports = { loadSnmpMrtgObjectsList, loadSnmpMrtgObjectData }
