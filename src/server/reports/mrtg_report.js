@@ -127,7 +127,7 @@ module.exports.generateMrtgReport = async function (chatID) {
               title: { display: true, text: 'Traffic (Mbps)' },
               ticks: {
                 callback: value => {
-                  return (value / 1024).toFixed(2) + ' Mbps'
+                  return (value).toFixed(2) + ' Mbps'
                 },
               },
             },
