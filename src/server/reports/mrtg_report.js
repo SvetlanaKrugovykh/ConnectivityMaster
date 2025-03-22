@@ -40,8 +40,8 @@ module.exports.generateMrtgReport = async function (chatID) {
           timestamps: [],
           inDiffs: [],
           outDiffs: [],
-          inLast: 0,
-          outLast: 0,
+          inLast: 0n,
+          outLast: 0n,
         }
       }
 
@@ -53,39 +53,40 @@ module.exports.generateMrtgReport = async function (chatID) {
       let MAX_TRAFFIC_MBPS = 1024 * 1024
       if (Number(row.dev_port) > 10 && Number(row.dev_port) < 25) MAX_TRAFFIC_MBPS = 1024
 
-      if (last.timestamps.length > 0) {
-        let inDiff, outDiff
-
-        if (row_in !== 0n) {
-          if (row_in >= BigInt(last.inLast)) {
-            inDiff = row_in - BigInt(last.inLast)
+      if (row_in !== 0n) {
+        let inDiff
+        if (last.timestamps.length > 0) {
+          if (row_in >= last.inLast) {
+            inDiff = row_in - last.inLast
           } else {
-            inDiff = maxCounter64 - BigInt(last.inLast) + row_in
+            inDiff = maxCounter64 - last.inLast + row_in
           }
           inDiff = Number((inDiff * 8n) / divisor)
           inDiff = Math.min(inDiff, MAX_TRAFFIC_MBPS)
           last.inDiffs.push(inDiff > 0 ? inDiff : 0)
         }
+        last.inLast = row_in
+        last.timestamps.push(row.timestamp)
+      }
 
-        if (row_out !== 0n) {
-          if (row_out >= BigInt(last.outLast)) {
-            outDiff = row_out - BigInt(last.outLast)
+      if (row_out !== 0n) {
+        let outDiff
+        if (last.timestamps.length > 0) {
+          if (row_out >= last.outLast) {
+            outDiff = row_out - last.outLast
           } else {
-            outDiff = maxCounter64 - BigInt(last.outLast) + row_out
+            outDiff = maxCounter64 - last.outLast + row_out
           }
           outDiff = Number((outDiff * 8n) / divisor)
           outDiff = Math.min(outDiff, MAX_TRAFFIC_MBPS)
           last.outDiffs.push(outDiff > 0 ? outDiff : 0)
         }
-
-        console.log(`IP: ${row.ip}, Port: ${row.dev_port}`)
-        console.log(`inDiff: ${inDiff}, outDiff: ${outDiff}`)
-
+        last.outLast = row_out
+        last.timestamps.push(row.timestamp)
       }
 
-      last.timestamps.push(row.timestamp)
-      if (row_in !== 0n) last.inLast = row_in
-      if (row_out !== 0n) last.outLast = row_out
+      console.log(`IP: ${row.ip}, Port: ${row.dev_port}`)
+      console.log(`inDiff: ${last.inDiffs[last.inDiffs.length - 1] || 0}, outDiff: ${last.outDiffs[last.outDiffs.length - 1] || 0}`)
     })
 
     const charts = []
