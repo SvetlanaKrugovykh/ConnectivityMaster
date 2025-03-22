@@ -35,15 +35,39 @@ module.exports.generateMrtgReport = async function (chatID) {
       const PortNumber = Number(row.dev_port)
       let koef = 1
       if (PortNumber > 10 && PortNumber < 25) koef = 40
+
       const key = `${row.ip}:${row.dev_port}`
       if (!groupedData[key]) {
-        groupedData[key] = { ip: row.ip, dev_port: row.dev_port, timestamps: [], inDiffs: [], outDiffs: [] }
+        groupedData[key] = {
+          ip: row.ip,
+          dev_port: row.dev_port,
+          timestamps: [],
+          inDiffs: [],
+          outDiffs: []
+        }
       }
 
       const last = groupedData[key]
+
       if (last.timestamps.length > 0) {
-        const inDiff = (row.object_value_in - last.inLast) * 8 / (INTERVAL_SECONDS * koef * 1000000) // Mbps
-        const outDiff = (row.object_value_out - last.outLast) * 8 / (INTERVAL_SECONDS * koef * 1000000) // Mbps        
+        let inDiff, outDiff
+        const maxCounter64 = 18446744073709551615
+
+        if (row.object_value_in >= last.inLast) {
+          inDiff = (row.object_value_in - last.inLast)
+        } else {
+          inDiff = (maxCounter64 - last.inLast + row.object_value_in)
+        }
+
+        if (row.object_value_out >= last.outLast) {
+          outDiff = (row.object_value_out - last.outLast)
+        } else {
+          outDiff = (maxCounter64 - last.outLast + row.object_value_out)
+        }
+
+        inDiff = (inDiff * 8) / (INTERVAL_SECONDS * koef * 1000000)
+        outDiff = (outDiff * 8) / (INTERVAL_SECONDS * koef * 1000000)
+
         last.inDiffs.push(inDiff > 0 ? inDiff : 0)
         last.outDiffs.push(outDiff > 0 ? outDiff : 0)
       }
@@ -52,6 +76,7 @@ module.exports.generateMrtgReport = async function (chatID) {
       last.inLast = row.object_value_in
       last.outLast = row.object_value_out
     })
+
 
     const charts = []
     for (const key in groupedData) {
@@ -86,7 +111,14 @@ module.exports.generateMrtgReport = async function (chatID) {
             x: { title: { display: true, text: 'Time' } },
             y: {
               title: { display: true, text: 'Traffic (Mbps)' },
-              ticks: { callback: value => `${value.toFixed(2)} Mbps` }
+              ticks: {
+                callback: value => {
+                  if (value >= 1000) {
+                    return (value / 1000).toFixed(2) + ' Gbps'
+                  }
+                  return value.toFixed(2) + ' Mbps'
+                }
+              }
             },
           },
         },
