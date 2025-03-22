@@ -10,12 +10,16 @@ async function runCommand(command, args = [], value = '') {
 
   try {
     const { stdout, stderr } = await exec(fullCommand)
-    if (command.includes('pfctl')) console.log(`${new Date()}: ${command} out: ${stdout}`)
+
+    if (command.includes('pfctl')) {
+      console.log(`${new Date()}: ${command} out: ${stdout}`)
+    }
+
     if (command === 'snmpwalk') {
-      if (fullCommand.includes('Octets')) {
-        const value = stdout.split(' ').pop()
-        return value
+      if (fullCommand.includes('1.3.6.1.2.1.31.1.1.1.6') || fullCommand.includes('1.3.6.1.2.1.31.1.1.1.10')) {
+        return stdout.split(' ').pop().trim()
       }
+
       if (stdout.includes(value)) {
         return 'Status OK'
       } else {
@@ -30,5 +34,6 @@ async function runCommand(command, args = [], value = '') {
     throw new Error(`Error of command execution: ${error.message}`)
   }
 }
+
 
 module.exports = { runCommand }
