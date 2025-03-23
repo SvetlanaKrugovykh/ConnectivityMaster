@@ -98,7 +98,16 @@ module.exports.generateMrtgReport = async function (chatID) {
       const chartConfig = {
         type: 'line',
         data: {
-          labels: data.timestamps.map(ts => new Date(ts).toISOString().replace('T', ' ').substring(11, 19)), // HH:MM:SS
+          labels: data.timestamps.map(ts => {
+            const localDate = new Date(ts);
+            return localDate.toLocaleTimeString('uk-UA', {
+              timeZone: 'Europe/Kiev',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            })
+          }),
           datasets: [
             {
               label: 'Input Traffic (Mbps)',
