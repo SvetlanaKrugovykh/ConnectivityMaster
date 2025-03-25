@@ -69,7 +69,6 @@ module.exports.generateMrtgReport = async function (chatID) {
           }
         }
         last.inLast = row_in
-        last.timestamps.push(row.timestamp)
       }
 
       if (row_out !== 0n) {
@@ -88,8 +87,12 @@ module.exports.generateMrtgReport = async function (chatID) {
           }
         }
         last.outLast = row_out
+      }
+
+      if (!last.timestamps.includes(row.timestamp)) {
         last.timestamps.push(row.timestamp)
       }
+
     })
 
     const charts = []
