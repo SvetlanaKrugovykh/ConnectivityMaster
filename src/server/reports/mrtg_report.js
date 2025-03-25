@@ -134,13 +134,7 @@ module.exports.generateMrtgReport = async function (chatID) {
             legend: { position: 'top' },
           },
           scales: {
-            x: {
-              title: { display: true, text: 'Time' },
-              ticks: {
-                autoSkip: false,
-                maxTicksLimit: 48
-              }
-            },
+            x: { title: { display: true, text: 'Time' } },
             y: {
               title: { display: true, text: 'Traffic (Mbps)' },
               ticks: {
