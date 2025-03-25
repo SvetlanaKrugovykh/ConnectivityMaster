@@ -55,6 +55,7 @@ module.exports.generateMrtgReport = async function (chatID) {
 
       if (row_in !== 0n) {
         let inDiff
+
         if (last.timestamps.length > 0) {
           if (row_in >= last.inLast) {
             inDiff = row_in - last.inLast
@@ -87,12 +88,8 @@ module.exports.generateMrtgReport = async function (chatID) {
           }
         }
         last.outLast = row_out
-      }
-
-      if (!last.timestamps.includes(row.timestamp)) {
         last.timestamps.push(row.timestamp)
       }
-
     })
 
     const charts = []
