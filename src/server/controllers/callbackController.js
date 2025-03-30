@@ -3,6 +3,7 @@ const crypto = require('crypto')
 const dbRequests = require('../db-api/requests')
 const getLiqpayKeys = require('../globalBuffer').getLiqpayKeys
 const { sendToChat } = require('../modules/to_local_DB')
+const { sendPaymentData } = require('../modules/redirectPaymentData')
 
 module.exports.getCallback = function (abbreviation) {
   return async function (request, reply) {
@@ -28,6 +29,13 @@ module.exports.getCallback = function (abbreviation) {
 
       const paymentData = JSON.parse(Buffer.from(data, 'base64').toString('utf8'))
       console.log('Decoded payment data:', paymentData)
+
+
+      if (paymentData?.description.includes('Płatność za usługę')) {
+        console.log('Description contains "Płatność za usługę". Sending data to external service...')
+        await sendPaymentData(paymentData)
+        return reply.status(200).send('Payment data sent to external service')
+      }
 
       const payment = await dbRequests.updatePayment(paymentData)
       console.log('Payment updated:', payment)
