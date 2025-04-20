@@ -30,21 +30,19 @@ module.exports.getCallback = function (abbreviation) {
       const paymentData = JSON.parse(Buffer.from(data, 'base64').toString('utf8'))
       console.log('Decoded payment data:', paymentData)
 
-
       if (paymentData?.description.includes('Płatność za usługę')) {
         console.log('Description contains "Płatność za usługę". Sending data to external service...')
         try {
           const response = await sendPaymentData(paymentData)
           if (response.status !== 200) {
             console.error('Error: External service returned non-200 status:', response.status)
-            return reply.status(response.status).send('Error sending payment data to external service')
+          } else {
+            console.log('Payment data successfully sent to external service')
           }
-          console.log('Payment data successfully sent to external service')
-          return reply.status(200).send('Payment data sent to external service')
         } catch (error) {
           console.error('Error sending payment data to external service:', error.message)
-          return reply.status(500).send('Error sending payment data to external service')
         }
+        return reply.status(200).send('OK')
       }
 
       const payment = await dbRequests.updatePayment(paymentData)
