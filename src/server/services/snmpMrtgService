@@ -10,12 +10,19 @@ async function loadSnmpMrtgObjectsList() {
     const snmpObjectsList = parsedData.ResponseArray
     return snmpObjectsList
   } catch (err) {
-    console.log(err)
+    console.log('Error in loadSnmpMrtgObjectsList:', err)
+    return []
   }
 }
 
 async function loadSnmpMrtgObjectData(snmpMrtgObjectsList) {
   if (process.env.PLATFORM !== 'freebsd') return true
+
+  if (!Array.isArray(snmpMrtgObjectsList)) {
+    console.log(`[${new Date().toISOString()}] snmpMrtgObjectsList is not an array or is undefined`)
+    return
+  }
+
   let response = ''
   const data = []
 
