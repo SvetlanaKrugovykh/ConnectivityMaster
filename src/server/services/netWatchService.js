@@ -4,6 +4,8 @@ const { checksnmpObjectStatus, loadSnmpObjectsList } = require('./snmpNetWatchSe
 const { loadSnmpMrtgObjectsList, loadSnmpMrtgObjectData } = require('./snmpMrtgService')
 const { checkLogsFile } = require('../services/logAnalyzeService')
 
+let ipCheckDelayList = []
+
 async function netWatchStarter() {
 
   let ipList = await loadipList()
@@ -23,7 +25,7 @@ async function netWatchStarter() {
     snmpObjectsList = testSnmpObjectsList
   }
 
-  const ipCheckDelayList = ipList.filter(ip => ip.ckeckDelay).map(ip => ip.ip_address)
+  ipCheckDelayList = ipList.filter(ip => ip.ckeckDelay).map(ip => ip.ip_address)
 
   setInterval(() => {
     try {
