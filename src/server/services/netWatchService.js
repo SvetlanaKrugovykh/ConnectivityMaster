@@ -94,4 +94,9 @@ async function logAnaliseStarter() {
 }
 
 
-module.exports = { netWatchStarter, mrtgWatchStarter, logAnaliseStarter }
+module.exports = {
+  netWatchStarter,
+  mrtgWatchStarter,
+  logAnaliseStarter,
+  ipCheckDelayListContainer: { list: ipCheckDelayList },
+}
