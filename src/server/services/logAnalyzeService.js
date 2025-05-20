@@ -32,8 +32,7 @@ module.exports.checkLogsFile = async function () {
     })
 
     if (suspiciousEntries.length > 2) {
-      const message = `❗❗❗Suspicious ARP activity detected:❗❗❗\n${suspiciousEntries.join('\n')}`
-      console.log(message)
+      const message = formatArpSuspiciousMessage(suspiciousEntries)
       await sendTgMessage(message)
     }
   } catch (err) {
@@ -57,4 +56,33 @@ async function sendTgMessage(message) {
   }
 }
 
+function formatArpSuspiciousMessage(suspiciousEntries) {
+  try {
+    const logRegex = /^(\w{3} \d{2} \d{2}:\d{2}:\d{2}) (.+)$/
+    const groups = {}
+
+    suspiciousEntries.forEach(line => {
+      const match = line.match(logRegex)
+      if (!match) return
+      const time = match[1]
+      const rest = match[2]
+      if (!groups[rest]) {
+        groups[rest] = { times: [], count: 0 }
+      }
+      groups[rest].times.push(time)
+      groups[rest].count += 1
+    })
+
+    let message = '❗️❗️❗️Suspicious ARP activity detected:❗️❗️❗️\n'
+    Object.entries(groups).forEach(([rest, { times, count }]) => {
+      times.sort((a, b) => new Date(`2024 ${a}`) - new Date(`2024 ${b}`))
+      message += `\n${rest}\n  ↳ ${count} times, from ${times[0]} to ${times[times.length - 1]}`
+    })
+
+    return message
+  } catch (err) {
+    console.error('Error in formatArpSuspiciousMessage:', err)
+    return '❗️❗️❗️Suspicious ARP activity detected, but failed to format details.'
+  }
+}
 
