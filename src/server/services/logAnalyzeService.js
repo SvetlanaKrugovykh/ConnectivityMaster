@@ -60,23 +60,30 @@ function formatArpSuspiciousMessage(suspiciousEntries) {
   try {
     const logRegex = /^(\w{3} \d{2} \d{2}:\d{2}:\d{2}) (.+)$/
     const groups = {}
+    const currentYear = new Date().getFullYear()
 
     suspiciousEntries.forEach(line => {
       const match = line.match(logRegex)
       if (!match) return
-      const time = match[1]
+      const timeStr = match[1]
       const rest = match[2]
+      const fullTimeStr = `${timeStr} ${currentYear}`
+      const timeObj = new Date(fullTimeStr)
+
       if (!groups[rest]) {
-        groups[rest] = { times: [], count: 0 }
+        groups[rest] = { times: [], timeStrs: [], count: 0 }
       }
-      groups[rest].times.push(time)
+      groups[rest].times.push(timeObj)
+      groups[rest].timeStrs.push(timeStr)
       groups[rest].count += 1
     })
 
     let message = '❗️❗️❗️Suspicious ARP activity detected:❗️❗️❗️\n'
-    Object.entries(groups).forEach(([rest, { times, count }]) => {
-      times.sort((a, b) => new Date(`2024 ${a}`) - new Date(`2024 ${b}`))
-      message += `\n${rest}\n  ↳ ${count} times, from ${times[0]} to ${times[times.length - 1]}`
+    Object.entries(groups).forEach(([rest, { times, timeStrs, count }]) => {
+      const sorted = times
+        .map((t, i) => ({ t, s: timeStrs[i] }))
+        .sort((a, b) => a.t - b.t);
+      message += `\n${rest}\n  ↳ ${count} times, from ${sorted[0].s} to ${sorted[sorted.length - 1].s}`
     })
 
     return message
