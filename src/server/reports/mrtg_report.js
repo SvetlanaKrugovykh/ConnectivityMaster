@@ -1,6 +1,12 @@
 const { Pool } = require('pg')
 const fs = require('fs')
-const ejs = require('ejs')
+let ejs
+try {
+  ejs = require('ejs')
+} catch (err) {
+  ejs = null
+  console.warn('ejs module is not installed. MRTG report generation will be unavailable on this server.')
+}
 const path = require('path')
 const axios = require('axios')
 const FormData = require('form-data')
@@ -21,6 +27,10 @@ const pool = new Pool({
 })
 
 module.exports.generateMrtgReport = async function (chatID) {
+  if (!ChartJSNodeCanvas || !ejs) {
+    console.warn('MRTG report generation is not available on this server.')
+    return { success: false, error: 'MRTG report generation is not available on this server.' }
+  }
   if (!ChartJSNodeCanvas) {
     console.warn('MRTG report generation is not available on this server.')
     return { success: false, error: 'MRTG report generation is not available on this server.' }
