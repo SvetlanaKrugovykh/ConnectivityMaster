@@ -58,32 +58,36 @@ async function sendTgMessage(message) {
 
 function formatArpSuspiciousMessage(suspiciousEntries) {
   try {
-    const logRegex = /^(\w{3} \d{2} \d{2}:\d{2}:\d{2}) (.+)$/
+    const arpRegex = /^(\w{3} \d{2} \d{2}:\d{2}:\d{2}) (\S+) kernel: arp: (\d{1,3}(?:\.\d{1,3}){3}) moved from (\S+) to (\S+) on (\S+)/
     const groups = {}
     const currentYear = new Date().getFullYear()
 
     suspiciousEntries.forEach(line => {
-      const match = line.match(logRegex)
+      const match = line.match(arpRegex)
       if (!match) return
       const timeStr = match[1]
-      const rest = match[2]
+      const ip = match[3]
+      const macFrom = match[4]
+      const macTo = match[5]
+      const vlan = match[6]
+      const groupKey = `${ip} moved from ${macFrom} to ${macTo} on ${vlan}`
       const fullTimeStr = `${timeStr} ${currentYear}`
       const timeObj = new Date(fullTimeStr)
 
-      if (!groups[rest]) {
-        groups[rest] = { times: [], timeStrs: [], count: 0 }
+      if (!groups[groupKey]) {
+        groups[groupKey] = { times: [], timeStrs: [], count: 0 }
       }
-      groups[rest].times.push(timeObj)
-      groups[rest].timeStrs.push(timeStr)
-      groups[rest].count += 1
+      groups[groupKey].times.push(timeObj)
+      groups[groupKey].timeStrs.push(timeStr)
+      groups[groupKey].count += 1
     })
 
     let message = '❗️❗️❗️Suspicious ARP activity detected:❗️❗️❗️\n'
-    Object.entries(groups).forEach(([rest, { times, timeStrs, count }]) => {
+    Object.entries(groups).forEach(([key, { times, timeStrs, count }]) => {
       const sorted = times
         .map((t, i) => ({ t, s: timeStrs[i] }))
-        .sort((a, b) => a.t - b.t);
-      message += `\n${rest}\n  ↳ ${count} times, from ${sorted[0].s} to ${sorted[sorted.length - 1].s}`
+        .sort((a, b) => a.t - b.t)
+      message += `\n${key}\n  ↳ ${count} times, from ${sorted[0].s} to ${sorted[sorted.length - 1].s}`
     })
 
     return message
