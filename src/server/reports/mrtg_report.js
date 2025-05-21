@@ -1,10 +1,16 @@
 const { Pool } = require('pg')
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas')
 const fs = require('fs')
 const ejs = require('ejs')
 const path = require('path')
 const axios = require('axios')
 const FormData = require('form-data')
+let ChartJSNodeCanvas
+try {
+  ChartJSNodeCanvas = require('chartjs-node-canvas').ChartJSNodeCanvas
+} catch (err) {
+  ChartJSNodeCanvas = null
+  console.warn('chartjs-node-canvas module is not installed. MRTG report generation will be unavailable on this server.')
+}
 
 const pool = new Pool({
   user: process.env.TRAFFIC_DB_USER,
@@ -15,6 +21,10 @@ const pool = new Pool({
 })
 
 module.exports.generateMrtgReport = async function (chatID) {
+  if (!ChartJSNodeCanvas) {
+    console.warn('MRTG report generation is not available on this server.')
+    return { success: false, error: 'MRTG report generation is not available on this server.' }
+  }
   try {
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 })
     console.log('ChartJSNodeCanvas initialized successfully')
