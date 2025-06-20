@@ -15,7 +15,8 @@ try {
   ChartJSNodeCanvas = require('chartjs-node-canvas').ChartJSNodeCanvas
 } catch (err) {
   ChartJSNodeCanvas = null
-  console.warn('chartjs-node-canvas module is not installed. MRTG report generation will be unavailable on this server.')
+  if (process.env.MRTG_DEBUG === '9')
+    console.warn('chartjs-node-canvas module is not installed. MRTG report generation will be unavailable on this server.')
 }
 
 const pool = new Pool({
