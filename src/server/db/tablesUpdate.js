@@ -45,8 +45,9 @@ module.exports.updateTables = function () {
 }
 
 async function checkAndCreateTable(tableName) {
+  let client
   try {
-    const client = await pool.connect()
+    client = await pool.connect()
     const res = await client.query(
       `SELECT EXISTS (
         SELECT FROM information_schema.tables
@@ -62,10 +63,10 @@ async function checkAndCreateTable(tableName) {
     } else {
       console.log(`Table ${tableName} already exists.`)
     }
-    client.end()
   } catch (err) {
-    client.end()
     console.error(`Error checking if table ${tableName} exists:`, err)
+  } finally {
+    if (client) client.release()
   }
 }
 
