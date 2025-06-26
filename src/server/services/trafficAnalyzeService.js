@@ -31,6 +31,10 @@ module.exports.macSaving = async function () {
 
 async function processLogsFile(logFile) {
 
+  if (!logFile || !fs.existsSync(logFile)) {
+    console.warn(`Log file does not exist: ${logFile}`)
+    return 'File does not exist'
+  }
   const subnet = logFile.includes('168') ? '168' : '10'
 
   try {
