@@ -68,8 +68,16 @@ module.exports.execServiceContinued = async function (ipAddress) {
 
 module.exports.execGetPayLink = async function (ipAddress, amount) {
   console.log(`web Request for execGetPayLink from ipAddress: ${ipAddress} amount: ${amount}`)
+  console.log(`DB_USER_ADD_URL: ${process.env.DB_USER_ADD_URL}`)
 
   try {
+    console.log('Making request to:', process.env.DB_USER_ADD_URL)
+    console.log('Request data:', {
+      "ip_address": ipAddress,
+      "data": "Added",
+      "signature": "Added"
+    })
+
     const response = await axios({
       method: 'post',
       url: process.env.DB_USER_ADD_URL,
@@ -83,8 +91,11 @@ module.exports.execGetPayLink = async function (ipAddress, amount) {
         "signature": "Added"
       },
     })
-    if (!response.status == 200) {
-      console.log(response.status)
+    console.log('Response status:', response.status)
+    console.log('Response data:', response.data)
+
+    if (response.status !== 200) {
+      console.log('Non-200 status:', response.status)
       return null
     } else {
       console.log('response.status 200', response.data)
