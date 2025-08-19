@@ -1,0 +1,9 @@
+SELECT 
+    source_ip,
+    timestamp::date AS day,
+    COUNT(*) AS attempts
+FROM traffic_data
+WHERE destination_port = 445
+  AND timestamp >= current_date - INTERVAL '1 day'
+GROUP BY source_ip, day
+ORDER BY day DESC, attempts DESC;
