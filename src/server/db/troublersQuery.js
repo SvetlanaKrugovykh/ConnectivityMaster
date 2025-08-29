@@ -13,6 +13,8 @@ module.exports.buildTroublersQuery = function buildTroublersQuery(lookbackDays =
         source_ip,
         COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
         COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
         COUNT(*) AS attempts
       FROM traffic_data
       WHERE timestamp >= NOW() - INTERVAL '${lookbackDays} day'
@@ -27,6 +29,8 @@ module.exports.buildTroublersQuery = function buildTroublersQuery(lookbackDays =
         source_ip,
         COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
         COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
         COUNT(*) AS attempts
       FROM traffic_data
       WHERE timestamp >= NOW() - INTERVAL '${lookbackDays} day'
@@ -41,6 +45,8 @@ module.exports.buildTroublersQuery = function buildTroublersQuery(lookbackDays =
         source_ip,
         COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
         COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
         COUNT(*) AS attempts
       FROM traffic_data
       WHERE timestamp >= NOW() - INTERVAL '${lookbackDays} day'
@@ -55,6 +61,8 @@ module.exports.buildTroublersQuery = function buildTroublersQuery(lookbackDays =
         source_ip,
         COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
         COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
         COUNT(*) AS attempts
       FROM traffic_data
       WHERE timestamp >= NOW() - INTERVAL '${lookbackDays} day'
