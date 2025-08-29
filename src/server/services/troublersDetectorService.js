@@ -48,8 +48,7 @@ async function scanTrafficForThreats() {
 
   let client
   try {
-    client = await pool.connect()
-    const res = await client.query(sql)
+    const res = await pool.query(sql)
     if (!res.rows || res.rows.length === 0) {
       console.log('[trafficThreats] no threats found')
       return
