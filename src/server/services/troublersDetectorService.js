@@ -12,6 +12,7 @@ const pool = new Pool({
   database: process.env.TRAFFIC_DB_NAME,
   password: process.env.TRAFFIC_DB_PASSWORD,
   port: process.env.TRAFFIC_DB_PORT,
+  options: '-c jit=off'
 })
 
 function formatThreatsMessage(rows) {
