@@ -1,6 +1,6 @@
 const fs = require('fs')
 const dotenv = require('dotenv')
-const { sendToChat } = require('../modules/to_local_DB')
+const { sendTgMessage } = require('./telegramService')
 
 dotenv.config()
 
@@ -37,22 +37,6 @@ module.exports.checkLogsFile = async function () {
     }
   } catch (err) {
     console.error('Error reading log file:', err)
-  }
-}
-
-
-async function sendTgMessage(message) {
-  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
-  const telegramChatId = process.env.TELEGRAM_CHAT_ID
-  const apiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
-
-  try {
-    const response = await sendToChat(apiUrl, telegramBotToken, telegramChatId, message)
-    if (!response) {
-      console.log('Error sending Telegram message.')
-    }
-  } catch (error) {
-    console.error('Error sending Telegram message:', error)
   }
 }
 

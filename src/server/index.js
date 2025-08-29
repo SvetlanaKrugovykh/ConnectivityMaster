@@ -6,6 +6,7 @@ const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const linkPayPlugin = require('./plugins/link-pay.plugin')
 const httpProxy = require('@fastify/http-proxy')
 const { netWatchStarter, mrtgWatchStarter, logAnaliseStarter } = require('./services/netWatchService')
+const { startThreatScanner } = require('./services/troublersDetectorService')
 const fs = require('fs')
 const path = require('path')
 
@@ -85,6 +86,10 @@ if (process.env.MRTG_WATCHING_ENABLED === 'true') {
 }
 
 logAnaliseStarter()
+
+getUrls.ready(() => {
+  if (process.env.VIRUS_SCAN_ENABLED !== 'false') startThreatScanner()
+})
 
 app_gate.register(cors, {
   origin: '*', // Adjust as needed
