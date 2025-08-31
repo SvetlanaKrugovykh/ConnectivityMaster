@@ -20,7 +20,73 @@ WHERE source_ip = '192.168.58.1'
 GROUP BY destination_port, day
 ORDER BY day DESC, attempts DESC;
 =====================================
+psql -U postgres -d traffic
+=====================================
+ (
+      SELECT
+        'SCAN_PORTS' AS threat_type,
+        source_ip,
+        COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
+        COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
+        COUNT(*) AS attempts
+      FROM traffic_data
+      WHERE timestamp >= NOW() - INTERVAL '1 day'
+      GROUP BY source_ip
+      HAVING COUNT(DISTINCT destination_ip) > 6000
+          OR COUNT(DISTINCT destination_port) > 400
+    )
+    UNION ALL
+    (
+      SELECT
+        'SUSPICIOUS_PORTS' AS threat_type,
+        source_ip,
+        COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
+        COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
+        COUNT(*) AS attempts
+      FROM traffic_data
+      WHERE timestamp >= NOW() - INTERVAL '1 day'
+        AND destination_port IN (135, 139, 445, 1433, 3389, 5900)
+      GROUP BY source_ip
+      HAVING COUNT(*) > 100
+    )
+    UNION ALL
+    (
+      SELECT
+        'SMTP_SPAM' AS threat_type,
+        source_ip,
+        COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
+        COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
+        COUNT(*) AS attempts
+      FROM traffic_data
+      WHERE timestamp >= NOW() - INTERVAL '1 day'
+        AND destination_port IN (25, 465, 587)
+      GROUP BY source_ip
+      HAVING COUNT(*) > 20
+    )
+    UNION ALL
+    (
+      SELECT
+        'BURST_TRAFFIC' AS threat_type,
+        source_ip,
+        COUNT(DISTINCT destination_ip) AS uniq_dst_ips,
+        COUNT(DISTINCT destination_port) AS uniq_dst_ports,
+        MIN(destination_port) AS min_dst_port,
+        MAX(destination_port) AS max_dst_port,
+        COUNT(*) AS attempts
+      FROM traffic_data
+      WHERE timestamp >= NOW() - INTERVAL '1 day'
+      GROUP BY source_ip
+      HAVING COUNT(*) > 6000
+    )
+    ORDER BY attempts DESC;"
 
+======================================
 
 (
     SELECT

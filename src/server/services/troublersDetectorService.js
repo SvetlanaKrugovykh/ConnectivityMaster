@@ -62,7 +62,14 @@ async function scanTrafficForThreats() {
       const sent = await sendTgMessage(message)
       console.log('[trafficThreats] telegram send status:', sent)
     } else {
-      console.log('[trafficThreats] below minToSend threshold, skip telegram')
+      const ips = res.rows.map(r => r.source_ip).filter(Boolean)
+      if (ips.length === 1) {
+        console.log(`[trafficThreats] below minToSend (${minToSend}), candidate IP: ${ips[0]}`)
+      } else if (ips.length > 1) {
+        console.log(`[trafficThreats] below minToSend (${minToSend}), candidate IPs: ${ips.slice(0, 10).join(', ')}${ips.length > 10 ? ', ...' : ''}`)
+      } else {
+        console.log(`[trafficThreats] below minToSend (${minToSend}), no source_ip present in rows`)
+      }
     }
   } catch (err) {
     console.error('[trafficThreats] scan error:', err)
