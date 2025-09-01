@@ -1,5 +1,6 @@
 const axios = require('axios')
 const nodemailer = require('nodemailer')
+const FormData = require('form-data')
 require('dotenv').config()
 
 
@@ -12,7 +13,7 @@ module.exports.sendMessage = async function (body) {
       case 'sms':
         return await sendSMS(body)
       case 'telegram':
-        return await sendTelegram(body)
+        return await sendFileToTelegram(body)
       case 'facebookMessenger':
         return await sendFacebookMessenger(body)
       case 'whatsApp':
@@ -65,6 +66,68 @@ async function sendTelegram(body) {
       return false
     }
   }
+}
+
+async function sendFileToTelegram(body) {
+  const { addresses = [], message = '', attachments = [] } = body || {}
+  const apiToken = process.env.TELEGRAM_BOT_TOKEN_SILVER
+  if (!apiToken) {
+    console.error('[telegram] bot token not set')
+    return false
+  }
+
+  for (const address of addresses) {
+    if (!address) continue
+    try {
+      if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+          const form = new FormData()
+          form.append('chat_id', address)
+          if (message) form.append('caption', message)
+
+          const content = attachment && attachment.content ? attachment.content : ''
+          const buffer = Buffer.from(content, 'base64')
+          if (!buffer || buffer.length === 0) {
+            console.log(`[telegram] skip empty attachment for ${address} ${attachment && attachment.filename ? attachment.filename : ''}`)
+            continue
+          }
+          form.append('document', buffer, { filename: attachment.filename || 'file.bin' })
+
+          const resp = await axios.post(`https://api.telegram.org/bot${apiToken}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+          })
+
+          if (!resp || !resp.data || resp.data.ok !== true) {
+            const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+            console.log(`[telegram] sendDocument failed: ${String(desc).slice(0, 200)}`)
+            return false
+          }
+        }
+      } else {
+        const resp = await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
+          chat_id: address,
+          text: message || ' '
+        })
+        if (!resp || !resp.data || resp.data.ok !== true) {
+          const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+          console.log(`[telegram] sendMessage failed: ${String(desc).slice(0, 200)}`)
+          return false
+        }
+      }
+
+      console.log(`[telegram] sent to ${address}`)
+    } catch (err) {
+      const short = err && err.response && err.response.data && err.response.data.description
+        ? err.response.data.description
+        : (err && err.message ? err.message : 'unknown error')
+      console.error(`[telegram] Error sending to ${address}: ${String(short).slice(0, 200)}`)
+      return false
+    }
+  }
+
+  return true
 }
 
 async function sendEmail(body) {

@@ -22,7 +22,7 @@
 		"fastify-helmet": "^6.0.0",
 		"fastify-multipart": "^5.4.0",
 		"firebase-admin": "^11.10.1",
-		"form-data": "^4.0.2",
+		"form-data": "^4.0.4",
 		"fs": "^0.0.1-security",
 		"http-errors": "^2.0.0",
 		"https": "^1.0.0",
