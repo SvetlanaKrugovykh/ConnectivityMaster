@@ -3,6 +3,9 @@ const nodemailer = require('nodemailer')
 const FormData = require('form-data')
 require('dotenv').config()
 
+const CAPTION_MAX = 1024
+const MSG_MAX = 4096
+const LOG_TRIM = 200
 
 module.exports.sendMessage = async function (body) {
 
@@ -13,7 +16,7 @@ module.exports.sendMessage = async function (body) {
       case 'sms':
         return await sendSMS(body)
       case 'telegram':
-        return await sendFileToTelegram(body)
+        return await sendTelegram(body)
       case 'facebookMessenger':
         return await sendFacebookMessenger(body)
       case 'whatsApp':
@@ -33,42 +36,13 @@ module.exports.sendMessage = async function (body) {
   }
 }
 
-async function sendTelegram(body) {
-  const { addresses, message, attachments } = body
-  const apiToken = process.env.TELEGRAM_BOT_TOKEN_SILVER
 
-  for (const address of addresses) {
-    try {
-      if (attachments && attachments.length > 0) {
-        for (const attachment of attachments) {
-          const formData = new FormData()
-          formData.append('chat_id', address)
-          formData.append('caption', message)
-          const buffer = Buffer.from(attachment.content, 'base64')
-          if (!buffer) throw new Error('Failed to create buffer from base64 string')
-          formData.append('document', new Blob([buffer]), attachment.filename)
-          await axios.post(`https://api.telegram.org/bot${apiToken}/sendDocument`, formData, {
-            headers: {
-              'Content-Type': `multipart/form-data boundary=${formData._boundary}`,
-            },
-          })
-        }
-      } else {
-        await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
-          chat_id: address,
-          text: message,
-        })
-      }
-      console.log('Message sent successfully')
-      return true
-    } catch (error) {
-      console.error('Error sending Telegram message:', error.message)
-      return false
-    }
-  }
+function isHtml(text) {
+  if (!text || typeof text !== 'string') return false
+  return /<\/?[a-z][\s\S]*>/i.test(text)
 }
 
-async function sendFileToTelegram(body) {
+async function sendTelegram(body) {
   const { addresses = [], message = '', attachments = [] } = body || {}
   const apiToken = process.env.TELEGRAM_BOT_TOKEN_SILVER
   if (!apiToken) {
@@ -76,14 +50,20 @@ async function sendFileToTelegram(body) {
     return false
   }
 
+  const html = isHtml(message)
   for (const address of addresses) {
     if (!address) continue
     try {
+      const useCaption = typeof message === 'string' && message.length > 0 && message.length <= CAPTION_MAX
+
       if (attachments && attachments.length > 0) {
         for (const attachment of attachments) {
           const form = new FormData()
           form.append('chat_id', address)
-          if (message) form.append('caption', message)
+          if (useCaption) {
+            form.append('caption', message)
+            if (html) form.append('parse_mode', 'HTML')
+          }
 
           const content = attachment && attachment.content ? attachment.content : ''
           const buffer = Buffer.from(content, 'base64')
@@ -101,18 +81,30 @@ async function sendFileToTelegram(body) {
 
           if (!resp || !resp.data || resp.data.ok !== true) {
             const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
-            console.log(`[telegram] sendDocument failed: ${String(desc).slice(0, 200)}`)
+            console.log(`[telegram] sendDocument failed: ${String(desc).slice(0, LOG_TRIM)}`)
+            return false
+          }
+        }
+
+        if (!useCaption && message && message.length > 0) {
+          const text = String(message).slice(0, MSG_MAX)
+          const payload = { chat_id: address, text }
+          if (html) payload.parse_mode = 'HTML'
+          const resp = await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, payload)
+          if (!resp || !resp.data || resp.data.ok !== true) {
+            const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+            console.log(`[telegram] sendMessage (post-doc) failed: ${String(desc).slice(0, LOG_TRIM)}`)
             return false
           }
         }
       } else {
-        const resp = await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, {
-          chat_id: address,
-          text: message || ' '
-        })
+        const text = (message && message.length > 0) ? String(message).slice(0, MSG_MAX) : ' '
+        const payload = { chat_id: address, text }
+        if (html) payload.parse_mode = 'HTML'
+        const resp = await axios.post(`https://api.telegram.org/bot${apiToken}/sendMessage`, payload)
         if (!resp || !resp.data || resp.data.ok !== true) {
           const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
-          console.log(`[telegram] sendMessage failed: ${String(desc).slice(0, 200)}`)
+          console.log(`[telegram] sendMessage failed: ${String(desc).slice(0, LOG_TRIM)}`)
           return false
         }
       }
@@ -122,13 +114,14 @@ async function sendFileToTelegram(body) {
       const short = err && err.response && err.response.data && err.response.data.description
         ? err.response.data.description
         : (err && err.message ? err.message : 'unknown error')
-      console.error(`[telegram] Error sending to ${address}: ${String(short).slice(0, 200)}`)
+      console.error(`[telegram] Error sending to ${address}: ${String(short).slice(0, LOG_TRIM)}`)
       return false
     }
   }
 
   return true
 }
+
 
 async function sendEmail(body) {
   const transporter = nodemailer.createTransport({
@@ -269,38 +262,81 @@ async function sendViber(body) {
 }
 
 async function sendSignal(body) {
-  const { addresses, message, attachments } = body
+  const { addresses = [], message = '', attachments = [] } = body || {}
   const apiToken = process.env.SIGNAL_BOT_TOKEN
+  if (!apiToken) {
+    console.error('[signal] bot token not set')
+    return false
+  }
 
   for (const address of addresses) {
+    if (!address) continue
     try {
+      const useCaption = typeof message === 'string' && message.length > 0 && message.length <= CAPTION_MAX
+
       if (attachments && attachments.length > 0) {
         for (const attachment of attachments) {
-          const formData = new FormData()
-          formData.append('chat_id', address)
-          formData.append('caption', message)
-          const buffer = Buffer.from(attachment.content, 'base64')
-          if (!buffer) throw new Error('Failed to create buffer from base64 string')
-          formData.append('document', new Blob([buffer]), attachment.filename)
-          await axios.post(`https://api.signal.org/bot${apiToken}/sendDocument`, formData, {
-            headers: {
-              'Content-Type': `multipart/form-data boundary=${formData._boundary}`,
-            },
+          const form = new FormData()
+          form.append('chat_id', address)
+          if (useCaption) form.append('caption', message)
+
+          const content = attachment && attachment.content ? attachment.content : ''
+          const buffer = Buffer.from(content, 'base64')
+          if (!buffer || buffer.length === 0) {
+            console.log(`[signal] skip empty attachment for ${address} ${attachment && attachment.filename ? attachment.filename : ''}`)
+            continue
+          }
+          form.append('document', buffer, { filename: attachment.filename || 'file.bin' })
+
+          const resp = await axios.post(`https://api.signal.org/bot${apiToken}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
           })
+
+          if (!resp || !resp.data || resp.data.ok !== true) {
+            const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+            console.log(`[signal] sendDocument failed: ${String(desc).slice(0, LOG_TRIM)}`)
+            return false
+          }
+        }
+
+        if (!useCaption && message && message.length > 0) {
+          const text = String(message).slice(0, MSG_MAX)
+          const resp = await axios.post(`https://api.signal.org/bot${apiToken}/sendMessage`, {
+            chat_id: address,
+            text
+          })
+          if (!resp || !resp.data || resp.data.ok !== true) {
+            const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+            console.log(`[signal] sendMessage (post-doc) failed: ${String(desc).slice(0, LOG_TRIM)}`)
+            return false
+          }
         }
       } else {
-        await axios.post(`https://api.signal.org/bot${apiToken}/sendMessage`, {
+        const text = (message && message.length > 0) ? String(message).slice(0, MSG_MAX) : ' '
+        const resp = await axios.post(`https://api.signal.org/bot${apiToken}/sendMessage`, {
           chat_id: address,
-          text: message,
+          text
         })
+        if (!resp || !resp.data || resp.data.ok !== true) {
+          const desc = resp && resp.data && resp.data.description ? resp.data.description : 'unknown'
+          console.log(`[signal] sendMessage failed: ${String(desc).slice(0, LOG_TRIM)}`)
+          return false
+        }
       }
-      console.log('Message sent successfully')
-      return true
-    } catch (error) {
-      console.error('Error sending Signal message:', error.message)
+
+      console.log(`[signal] sent to ${address}`)
+    } catch (err) {
+      const short = err && err.response && err.response.data && err.response.data.description
+        ? err.response.data.description
+        : (err && err.message ? err.message : 'unknown error')
+      console.error(`[signal] Error sending to ${address}: ${String(short).slice(0, LOG_TRIM)}`)
       return false
     }
   }
+
+  return true
 }
 
 async function sendSMS(body) {
