@@ -21,21 +21,11 @@ const tableQueries = {
     source_ip VARCHAR(15) NOT NULL,
     destination_ip VARCHAR(15) NOT NULL,
     destination_port INTEGER NOT NULL
-  )`,
-  mrtg_data: `CREATE TABLE IF NOT EXISTS mrtg_data (
-    id SERIAL PRIMARY KEY,
-    timestamp TIMESTAMP NOT NULL,
-    ip VARCHAR(15) NOT NULL,
-    dev_port INTEGER NOT NULL,
-    object_name VARCHAR(50) NOT NULL,
-    object_value_in BIGINT NOT NULL DEFAULT 0,
-    object_value_out BIGINT NOT NULL DEFAULT 0
-  )`,
+  )`
 }
 
 module.exports.updateTables = function () {
   checkAndCreateTable('traffic_data')
-    .then(() => checkAndCreateTable('mrtg_data'))
     .then(() => {
       console.log('All tables created or already exist.')
     })

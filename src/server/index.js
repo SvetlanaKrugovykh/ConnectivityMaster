@@ -5,8 +5,8 @@ const authPlugin = require('./plugins/app.auth.plugin')
 const redirectPlugin = require('./plugins/redirect.auth.plugin')
 const linkPayPlugin = require('./plugins/link-pay.plugin')
 const httpProxy = require('@fastify/http-proxy')
-const { netWatchStarter, mrtgWatchStarter, logAnaliseStarter } = require('./services/netWatchService')
 const { startThreatScanner } = require('./services/troublersDetectorService')
+const { logAnaliseStarter } = require('./services/logWatchService')
 const fs = require('fs')
 const path = require('path')
 
@@ -76,14 +76,6 @@ redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/re
 
 getUrls.register(linkPayPlugin)
 getUrls.register(require('./routes/linkPay.route'), { prefix: '/get-urls' })
-
-if (process.env.NETWATCHING_ENABLED === 'true') {
-  netWatchStarter()
-}
-
-if (process.env.MRTG_WATCHING_ENABLED === 'true') {
-  mrtgWatchStarter()
-}
 
 logAnaliseStarter()
 
