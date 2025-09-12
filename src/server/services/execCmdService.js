@@ -1,6 +1,8 @@
-module.exports.execCommand_ = async function (cmdText) {
+const { runCommand } = require('../utils/commandsOS')
+
+module.exports.execCommand_ = async function (cmdText, value) {
   try {
-    const addCommand = await runCommand(cmdText)
+    const addCommand = await runCommand(cmdText, [], value)
     if (addCommand.stdout) {
       // console.log(`${new Date()}: Added rule ${abonentId} -> ${ipAddress} successfully.`)
     }
