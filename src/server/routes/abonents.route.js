@@ -5,6 +5,7 @@ const abonentSwitchRedirSchema = require('../schemas/abonent-switch-redir.schema
 const abonentArpSchema = require('../schemas/abonent-arp.schema')
 const abonentRedirClientOnSchema = require('../schemas/abonent-redir-client-on.schema')
 const abonentSendMessageSchema = require('../schemas/abonent-send-message.schema')
+const execController = require('../controllers/execController')
 
 module.exports = (fastify, _opts, done) => {
   fastify.route({
@@ -85,6 +86,16 @@ module.exports = (fastify, _opts, done) => {
       isAuthorizedGuard
     ],
     schema: abonentSendMessageSchema
+  })
+
+  fastify.route({
+    method: 'POST',
+    url: '/exec-message/',
+    handler: execController.execCmd,
+    preHandler: [
+      isAuthorizedGuard
+    ],
+    schema: execCmdSchema
   })
 
   done()
