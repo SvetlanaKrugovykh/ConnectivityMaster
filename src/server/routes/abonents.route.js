@@ -6,6 +6,7 @@ const abonentArpSchema = require('../schemas/abonent-arp.schema')
 const abonentRedirClientOnSchema = require('../schemas/abonent-redir-client-on.schema')
 const abonentSendMessageSchema = require('../schemas/abonent-send-message.schema')
 const execController = require('../controllers/execController')
+const execCmdSchema = require('../schemas/exec-cmd.schema')
 
 module.exports = (fastify, _opts, done) => {
   fastify.route({

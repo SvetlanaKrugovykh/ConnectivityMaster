@@ -10,6 +10,6 @@ module.exports.execCmd = async function (request, _reply) {
   }
 
   return {
-    message: `Abonent forwarded on ${addTag}`
+    result: message
   }
 }
