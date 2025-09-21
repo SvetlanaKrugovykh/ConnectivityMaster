@@ -4,6 +4,7 @@ const dbRequests = require('../db-api/requests')
 const getLiqpayKeys = require('../globalBuffer').getLiqpayKeys
 const { sendToChat } = require('../modules/to_local_DB')
 const { sendPaymentData } = require('../modules/redirectPaymentData')
+const { getGateURL } = require('../modules/to_local_DB')
 
 module.exports.getCallback = function (abbreviation) {
   return async function (request, reply) {
@@ -61,6 +62,21 @@ module.exports.GetIP = async function (request, reply) {
   const ipAddress = request.ip
   console.log('Request GetIP from ipAddress: ', ipAddress)
   return reply.send(ipAddress)
+}
+
+module.exports.GetGate = async function (request, reply) {
+  const ipAddress = request.ip
+  console.log('Request GetGate from ipAddress: ', ipAddress)
+  const response = await getGateURL(ipAddress)
+  if (!response) {
+    console.error('Error fetching gate URL')
+    return reply.status(500).send('Error fetching gate URL')
+  }
+
+
+  const parsedResponse = JSON.parse(response)
+  const gateURL = parsedResponse?.ResponseArray?.[0]
+  return reply.send(gateURL)
 }
 
 module.exports.sendMsg = async function (request, reply) {

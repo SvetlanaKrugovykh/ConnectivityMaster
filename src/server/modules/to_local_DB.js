@@ -3,6 +3,14 @@ const USUAL_URL = process.env.URL
 const LOG_URL = process.env.LOG_URL
 const AUTH_TOKEN = process.env.AUTH_TOKEN
 
+
+async function getGateURL(ipAddress) {
+  const reqType = '__GetGateURL__'
+  const data = { ip: ipAddress }
+  const gateURL = await sendReqToDB(reqType, data, '')
+  return gateURL
+}
+
 async function sendReqToDB(reqType, data, _text) {
 
   let dataString = JSON.stringify(data)
@@ -72,4 +80,4 @@ async function sendToChat(url_address, token, chatId, message) {
 }
 
 
-module.exports = { sendReqToDB, sendToChat }
+module.exports = { sendReqToDB, sendToChat, getGateURL }
