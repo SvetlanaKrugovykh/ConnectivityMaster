@@ -20,23 +20,15 @@ if (process.env.ENABLE_TRAFFIC_TABLES === 'true') {
     console.log(err)
   }
 }
-console.log('HOST from .env:', process.env.HOST)
-console.log('[server.js] ENABLE_ABONENTS:', process.env.ENABLE_ABONENTS)
-console.log('[server.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
-console.log('[server.js] ENABLE_GET_URLS:', process.env.ENABLE_GET_URLS)
-console.log('[server.js] ENABLE_REDIRECT_API:', process.env.ENABLE_REDIRECT_API)
-console.log('[server.js] ENABLE_TRAFFIC_TABLES:', process.env.ENABLE_TRAFFIC_TABLES)
 
 if (process.env.ENABLE_ABONENTS === 'true') {
   (async () => {
     try {
-      console.log('[server.js] Waiting for app.ready()...')
       await app.ready()
-      console.log('[server.js] Starting app.listen...')
       const address = await app.listen({ port: process.env.PORT || 8080, host: HOST })
-      console.log(`[APP] Service listening on ${address} | ${new Date()}`)
+      console.log(`[APP] Service listening on ${address}`)
     } catch (err) {
-      console.error('[server.js] Server start error:', err)
+      console.error('[APP] Server start error:', err)
       process.exit(1)
     }
   })()

@@ -26,12 +26,6 @@ const getUrls = Fastify({ trustProxy: true })
 const redirectApiServer = Fastify({ trustProxy: true, https: credentials_gate })
 const app_gate = Fastify({ trustProxy: true, https: credentials_gate })
 
-console.log('[index.js] ENABLE_ABONENTS:', process.env.ENABLE_ABONENTS)
-console.log('[index.js] ENABLE_REDIRECT:', process.env.ENABLE_REDIRECT)
-console.log('[index.js] ENABLE_REDIRECT_API:', process.env.ENABLE_REDIRECT_API)
-console.log('[index.js] ENABLE_GET_URLS:', process.env.ENABLE_GET_URLS)
-console.log('[index.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
-
 if (process.env.ENABLE_ABONENTS === 'true') {
   console.log('[index.js] Registering abonents services...')
   app.register(authPlugin)
