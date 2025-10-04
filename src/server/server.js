@@ -14,7 +14,14 @@ if (process.env.ENABLE_TRAFFIC_TABLES === 'true') {
   }
 }
 
+console.log('[server.js] ENABLE_ABONENTS:', process.env.ENABLE_ABONENTS)
+console.log('[server.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
+console.log('[server.js] ENABLE_GET_URLS:', process.env.ENABLE_GET_URLS)
+console.log('[server.js] ENABLE_REDIRECT_API:', process.env.ENABLE_REDIRECT_API)
+console.log('[server.js] ENABLE_TRAFFIC_TABLES:', process.env.ENABLE_TRAFFIC_TABLES)
+
 if (process.env.ENABLE_ABONENTS === 'true') {
+  console.log('[server.js] About to start app.listen')
   app.listen({ port: process.env.PORT || 8080, host: HOST }, (err, address) => {
     if (err) {
       app.log.error(err)
