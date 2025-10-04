@@ -26,7 +26,14 @@ const getUrls = Fastify({ trustProxy: true })
 const redirectApiServer = Fastify({ trustProxy: true, https: credentials_gate })
 const app_gate = Fastify({ trustProxy: true, https: credentials_gate })
 
+console.log('[index.js] ENABLE_ABONENTS:', process.env.ENABLE_ABONENTS)
+console.log('[index.js] ENABLE_REDIRECT:', process.env.ENABLE_REDIRECT)
+console.log('[index.js] ENABLE_REDIRECT_API:', process.env.ENABLE_REDIRECT_API)
+console.log('[index.js] ENABLE_GET_URLS:', process.env.ENABLE_GET_URLS)
+console.log('[index.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
+
 if (process.env.ENABLE_ABONENTS === 'true') {
+  console.log('[index.js] Registering abonents services...')
   app.register(authPlugin)
   app.register(require('./routes/auth.route'), { prefix: '/api' })
   app.register(require('./routes/abonents.route'), { prefix: '/api' })
@@ -35,6 +42,7 @@ if (process.env.ENABLE_ABONENTS === 'true') {
 }
 
 if (process.env.ENABLE_REDIRECT === 'true') {
+  console.log('[index.js] Registering redirectServer...')
   redirectServer.register(httpProxy, {
     upstream: process.env.UPSTREAM_URL,
     prefix: '/',
@@ -54,6 +62,7 @@ if (process.env.ENABLE_REDIRECT === 'true') {
 }
 
 if (process.env.ENABLE_REDIRECT_API === 'true') {
+  console.log('[index.js] Registering redirectApiServer...')
   redirectApiServer.register(cors, {
     origin: '*',
     methods: ['GET']
@@ -63,15 +72,20 @@ if (process.env.ENABLE_REDIRECT_API === 'true') {
 }
 
 if (process.env.ENABLE_GET_URLS === 'true') {
+  console.log('[index.js] Registering getUrls...')
   getUrls.register(linkPayPlugin)
   getUrls.register(require('./routes/linkPay.route'), { prefix: '/get-urls' })
 
   getUrls.ready(() => {
-    if (process.env.VIRUS_SCAN_ENABLED !== 'false') startThreatScanner()
+    if (process.env.VIRUS_SCAN_ENABLED !== 'false') {
+      console.log('[index.js] Starting threat scanner...')
+      startThreatScanner()
+    }
   })
 }
 
 if (process.env.ENABLE_APP_GATE === 'true') {
+  console.log('[index.js] Registering app_gate...')
   app_gate.register(cors, {
     origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
