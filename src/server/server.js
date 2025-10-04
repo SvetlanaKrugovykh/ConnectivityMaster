@@ -4,6 +4,13 @@ const HOST = process.env.HOST || '127.0.0.1'
 const API_GATE_PORT = Number(process.env.API_GATE_PORT) || 8083
 const API_GATE_HOST = process.env.API_GATE_HOST || '127.0.0.1'
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+})
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+})
+
 const updateTables = require('./db/tablesUpdate').updateTables
 
 if (process.env.ENABLE_TRAFFIC_TABLES === 'true') {

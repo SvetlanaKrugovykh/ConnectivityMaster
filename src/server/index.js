@@ -35,8 +35,11 @@ console.log('[index.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
 if (process.env.ENABLE_ABONENTS === 'true') {
   console.log('[index.js] Registering abonents services...')
   app.register(authPlugin)
+  console.log('[index.js] Registered auth.route')
   app.register(require('./routes/auth.route'), { prefix: '/api' })
+  console.log('[index.js] Registered abonents.route')
   app.register(require('./routes/abonents.route'), { prefix: '/api' })
+  console.log('[index.js] Registered trafficAnalyze.route')
   app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
   logAnaliseStarter()
 }
