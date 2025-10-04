@@ -20,7 +20,7 @@ if (process.env.ENABLE_TRAFFIC_TABLES === 'true') {
     console.log(err)
   }
 }
-
+console.log('HOST from .env:', process.env.HOST)
 console.log('[server.js] ENABLE_ABONENTS:', process.env.ENABLE_ABONENTS)
 console.log('[server.js] ENABLE_APP_GATE:', process.env.ENABLE_APP_GATE)
 console.log('[server.js] ENABLE_GET_URLS:', process.env.ENABLE_GET_URLS)
