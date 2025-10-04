@@ -28,14 +28,18 @@ console.log('[server.js] ENABLE_REDIRECT_API:', process.env.ENABLE_REDIRECT_API)
 console.log('[server.js] ENABLE_TRAFFIC_TABLES:', process.env.ENABLE_TRAFFIC_TABLES)
 
 if (process.env.ENABLE_ABONENTS === 'true') {
-  console.log('[server.js] About to start app.listen')
-  app.listen({ port: process.env.PORT || 8080, host: HOST }, (err, address) => {
-    if (err) {
-      app.log.error(err)
+  (async () => {
+    try {
+      console.log('[server.js] Waiting for app.ready()...')
+      await app.ready()
+      console.log('[server.js] Starting app.listen...')
+      const address = await app.listen({ port: process.env.PORT || 8080, host: HOST })
+      console.log(`[APP] Service listening on ${address} | ${new Date()}`)
+    } catch (err) {
+      console.error('[server.js] Server start error:', err)
       process.exit(1)
     }
-    console.log(`[APP] Service listening on ${address} | ${new Date()}`)
-  })
+  })()
 }
 
 if (process.env.ENABLE_APP_GATE === 'true') {
