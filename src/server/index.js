@@ -20,76 +20,65 @@ const credentials_gate = {
   cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate_gate.pem'))
 }
 
-const app = Fastify({
-  trustProxy: true
-})
+const app = Fastify({ trustProxy: true })
+const redirectServer = Fastify({ trustProxy: true, https: credentials_gate })
+const getUrls = Fastify({ trustProxy: true })
+const redirectApiServer = Fastify({ trustProxy: true, https: credentials_gate })
+const app_gate = Fastify({ trustProxy: true, https: credentials_gate })
 
-const redirectServer = Fastify({
-  trustProxy: true,
-  https: credentials_gate
-})
+if (process.env.ENABLE_ABONENTS === 'true') {
+  app.register(authPlugin)
+  app.register(require('./routes/auth.route'), { prefix: '/api' })
+  app.register(require('./routes/abonents.route'), { prefix: '/api' })
+  app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
+  logAnaliseStarter()
+}
 
-const getUrls = Fastify({
-  trustProxy: true,
-})
+if (process.env.ENABLE_REDIRECT === 'true') {
+  redirectServer.register(httpProxy, {
+    upstream: process.env.UPSTREAM_URL,
+    prefix: '/',
+    http2: false
+  })
 
-const redirectApiServer = Fastify({
-  trustProxy: true,
-  https: credentials_gate,
-})
+  redirectServer.all('/redirect', async (request, reply) => {
+    try {
+      const proxyResponse = await redirectServer.proxy(request.raw)
+      reply.send(proxyResponse)
+    } catch (error) {
+      console.error(error)
+    }
+  })
 
-const app_gate = Fastify({
-  trustProxy: true,
-  https: credentials_gate
-})
+  redirectServer.register(redirectPlugin)
+}
 
+if (process.env.ENABLE_REDIRECT_API === 'true') {
+  redirectApiServer.register(cors, {
+    origin: '*',
+    methods: ['GET']
+  })
+  redirectApiServer.register(redirectPlugin)
+  redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/redirect-api' })
+}
 
-redirectServer.register(httpProxy, {
-  upstream: process.env.UPSTREAM_URL,
-  prefix: '/',
-  http2: false
-})
+if (process.env.ENABLE_GET_URLS === 'true') {
+  getUrls.register(linkPayPlugin)
+  getUrls.register(require('./routes/linkPay.route'), { prefix: '/get-urls' })
 
-redirectServer.all('/redirect', async (request, reply) => {
-  try {
-    const proxyResponse = await redirectServer.proxy(request.raw)
-    reply.send(proxyResponse)
-  } catch (error) {
-    console.error(error)
-  }
-})
+  getUrls.ready(() => {
+    if (process.env.VIRUS_SCAN_ENABLED !== 'false') startThreatScanner()
+  })
+}
 
-
-app.register(authPlugin)
-app.register(require('./routes/auth.route'), { prefix: '/api' })
-app.register(require('./routes/abonents.route'), { prefix: '/api' })
-app.register(require('./routes/trafficAnalyze.route'), { prefix: '/api' })
-
-redirectServer.register(redirectPlugin)
-
-redirectApiServer.register(cors, {
-  origin: '*',
-  methods: ['GET']
-})
-redirectApiServer.register(redirectPlugin)
-redirectApiServer.register(require('./routes/redirectApi.route'), { prefix: '/redirect-api' })
-
-getUrls.register(linkPayPlugin)
-getUrls.register(require('./routes/linkPay.route'), { prefix: '/get-urls' })
-
-logAnaliseStarter()
-
-getUrls.ready(() => {
-  if (process.env.VIRUS_SCAN_ENABLED !== 'false') startThreatScanner()
-})
-
-app_gate.register(cors, {
-  origin: '*', // Adjust as needed
-  methods: ['GET', 'POST', 'OPTIONS'], // Include OPTIONS if needed
-})
-app_gate.register(authPlugin)
-app_gate.register(require('@fastify/formbody'))
-app_gate.register(require('./routes/callback.route'), { prefix: '/api/liqpay/callback' })
-
+if (process.env.ENABLE_APP_GATE === 'true') {
+  app_gate.register(cors, {
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+  })
+  app_gate.register(authPlugin)
+  app_gate.register(require('@fastify/formbody'))
+  app_gate.register(require('./routes/callback.route'), { prefix: '/api/liqpay/callback' })
+}
 
 module.exports = { app, getUrls, app_gate, redirectServer, redirectApiServer, credentials, credentials_gate }
