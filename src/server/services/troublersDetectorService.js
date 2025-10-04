@@ -79,10 +79,14 @@ async function scanTrafficForThreats() {
 }
 
 function startThreatScanner() {
+  if (process.env.ENABLE_TRAFFIC_TABLES !== 'true') {
+    console.log('[trafficThreats] Threat scanner is disabled by ENABLE_TRAFFIC_TABLES')
+    return
+  }
+
   const intervalMinutes = parseInt(process.env.VIRUS_SCAN_INTERVAL, 10) || 60
   const ms = intervalMinutes * 60 * 1000
 
-  // run once immediately
   scanTrafficForThreats().catch(err => console.error('[trafficThreats] initial scan failed:', err))
 
   setInterval(() => {
