@@ -1,8 +1,8 @@
 const { runCommand } = require('../utils/commandsOS')
 
-module.exports.execCommand_ = async function (cmdText, value, timeout = 20000) {
+module.exports.execCommand_ = async function (cmdText, value) {
   try {
-    const addCommand = await runCommand(cmdText, [], value, timeout)
+    const addCommand = await runCommand(cmdText, [], value)
     if (addCommand.stdout) {
       return addCommand.stdout.trim()
     }

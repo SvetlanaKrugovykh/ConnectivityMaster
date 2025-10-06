@@ -1,15 +1,18 @@
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
+require('dotenv').config()
 
 async function runCommand(command, args = [], value = '') {
   let fullCommand = command
+
+  const timeout = Number(process.env.COMMAND_TIMEOUT) || 20000
 
   if (args.length > 0) {
     fullCommand += ` ${args.join(' ')}`
   }
 
   try {
-    const { stdout, stderr } = await exec(fullCommand)
+    const { stdout, stderr } = await exec(fullCommand, { timeout, maxBuffer: 1024 * 1024 })
 
     if (command.includes('pfctl')) {
       console.log(`${new Date()}: ${command} out: ${stdout}`)
