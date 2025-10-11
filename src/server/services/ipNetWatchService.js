@@ -125,16 +125,17 @@ async function pingProbeWithDelay(ipAddresses) {
 }
 
 // Handle host status changes
-function handleHostAlive(ipAddress) {
-  const previousStatus = hostStatusMap.get(ipAddress)
+function handleHostAlive(ipAddress, monitorType = 'basic') {
+  const key = ipAddress + '_' + monitorType
+  const previousStatus = hostStatusMap.get(key)
 
   // Reset failure counter on successful ping
-  failureCountMap.set(ipAddress, 0)
+  failureCountMap.set(key, 0)
 
-  if (previousStatus === Status.DEAD || !hostStatusMap.has(ipAddress)) {
-    deadHosts.delete(ipAddress)
-    aliveHosts.add(ipAddress)
-    hostStatusMap.set(ipAddress, Status.ALIVE)
+  if (previousStatus === Status.DEAD || !hostStatusMap.has(key)) {
+    deadHosts.delete(key)
+    aliveHosts.add(key)
+    hostStatusMap.set(key, Status.ALIVE)
 
     if (previousStatus === Status.DEAD) {
       sendTelegramNotification('Host ' + ipAddress + ' is now alive')
@@ -142,20 +143,21 @@ function handleHostAlive(ipAddress) {
   }
 }
 
-function handleHostDead(ipAddress, reason = 'ping timeout') {
-  const previousStatus = hostStatusMap.get(ipAddress)
+function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 'basic') {
+  const key = ipAddress + '_' + monitorType
+  const previousStatus = hostStatusMap.get(key)
 
   // Increment failure counter
-  const currentFailures = failureCountMap.get(ipAddress) || 0
+  const currentFailures = failureCountMap.get(key) || 0
   const newFailures = currentFailures + 1
-  failureCountMap.set(ipAddress, newFailures)
+  failureCountMap.set(key, newFailures)
 
   // Only mark as dead and send notification after threshold failures
   if (newFailures >= FAILURE_THRESHOLD) {
-    if (previousStatus === Status.ALIVE || !hostStatusMap.has(ipAddress)) {
-      aliveHosts.delete(ipAddress)
-      deadHosts.add(ipAddress)
-      hostStatusMap.set(ipAddress, Status.DEAD)
+    if (previousStatus === Status.ALIVE || !hostStatusMap.has(key)) {
+      aliveHosts.delete(key)
+      deadHosts.add(key)
+      hostStatusMap.set(key, Status.DEAD)
 
       if (previousStatus === Status.ALIVE) {
         let message = 'Host ' + ipAddress + ' is now dead'
@@ -166,7 +168,7 @@ function handleHostDead(ipAddress, reason = 'ping timeout') {
       }
     }
   } else {
-    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ')')
+    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ', ' + monitorType + ')')
   }
 }
 
