@@ -142,7 +142,7 @@ function handleHostAlive(ipAddress) {
   }
 }
 
-function handleHostDead(ipAddress) {
+function handleHostDead(ipAddress, reason = 'ping timeout') {
   const previousStatus = hostStatusMap.get(ipAddress)
 
   // Increment failure counter
@@ -158,18 +158,24 @@ function handleHostDead(ipAddress) {
       hostStatusMap.set(ipAddress, Status.DEAD)
 
       if (previousStatus === Status.ALIVE) {
-        sendTelegramNotification('Host ' + ipAddress + ' is now dead')
+        let message = 'Host ' + ipAddress + ' is now dead'
+        if (reason.includes('packet loss')) {
+          message = 'Warning: Host ' + ipAddress + ' has high packet loss'
+        }
+        sendTelegramNotification(message)
       }
     }
   } else {
-    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD)
+    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ')')
   }
 }
 
 function handlePacketLoss(ipAddress, lossPercentage) {
   const lossPercent = Math.round(lossPercentage * 100)
   console.log('[PingService] High packet loss for ' + ipAddress + ': ' + lossPercent + '%')
-  sendTelegramNotification('Warning: Host ' + ipAddress + ' has ' + lossPercent + '% packet loss')
+  
+  // Use same failure logic as regular ping
+  handleHostDead(ipAddress, 'packet loss ' + lossPercent + '%')
 }
 
 function handleNormalResponse(ipAddress, avgRTT, lossPercentage) {
