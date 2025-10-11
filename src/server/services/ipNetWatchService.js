@@ -1,6 +1,6 @@
 ﻿require('dotenv').config()
 const { runCommand } = require('../utils/commandsOS')
-const { sendTelegramMessage } = require('./telegramService')
+const { sendTgMessage } = require('./telegramService')
 
 // Environment configuration
 const LOCAL_NETWATCHING_ENABLED = process.env.LOCAL_NETWATCHING_ENABLED === 'true'
@@ -183,7 +183,7 @@ async function sendTelegramNotification(message) {
     modifiedText = modifiedText.replace(/Info/g, 'ℹ️')
 
     console.log('[PingService] Sending Telegram message:', modifiedText)
-    await sendTelegramMessage(modifiedText)
+    await sendTgMessage(modifiedText)
     lastTelegramSendTime = Date.now()
   } catch (error) {
     console.error('[PingService] Error sending Telegram message:', error?.message || error)
