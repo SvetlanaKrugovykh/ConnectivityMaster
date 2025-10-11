@@ -45,11 +45,11 @@ async function pingProbe(ipAddresses) {
     const pingPromises = ipAddresses.map(async ipAddress => {
       const command = 'ping'
       const args = ['-c', '1', '-W', '3', ipAddress]
-      
+
       try {
         const result = await runCommand(command, args)
         const stdout = result.stdout
-        
+
         if (stdout.includes('1 received')) {
           handleHostAlive(ipAddress)
         } else {
@@ -89,12 +89,12 @@ async function pingProbeWithDelay(ipAddresses) {
       for (let i = 0; i < PING_COUNT_FOR_DELAY; i++) {
         const command = 'ping'
         const args = ['-c', '1', '-I', PING_SOURCE_IP, ipAddress]
-        
+
         try {
           const result = await runCommand(command, args)
           const stdout = result.stdout
           const match = stdout.match(/time=([0-9.]+) ms/)
-          
+
           if (stdout.includes('1 received')) {
             rttSum += match ? parseFloat(match[1]) : 0
           } else {
@@ -107,7 +107,7 @@ async function pingProbeWithDelay(ipAddresses) {
       }
 
       const lossPercentage = lostPings / PING_COUNT_FOR_DELAY
-      
+
       if (lossPercentage > PACKET_LOSS_THRESHOLD) {
         handlePacketLoss(ipAddress, lossPercentage)
       } else {
@@ -125,12 +125,12 @@ async function pingProbeWithDelay(ipAddresses) {
 // Handle host status changes
 function handleHostAlive(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
-  
+
   if (previousStatus === Status.DEAD || !hostStatusMap.has(ipAddress)) {
     deadHosts.delete(ipAddress)
     aliveHosts.add(ipAddress)
     hostStatusMap.set(ipAddress, Status.ALIVE)
-    
+
     if (previousStatus === Status.DEAD) {
       sendTelegramNotification('Host ' + ipAddress + ' is now alive')
     }
@@ -139,12 +139,12 @@ function handleHostAlive(ipAddress) {
 
 function handleHostDead(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
-  
+
   if (previousStatus === Status.ALIVE || !hostStatusMap.has(ipAddress)) {
     aliveHosts.delete(ipAddress)
     deadHosts.add(ipAddress)
     hostStatusMap.set(ipAddress, Status.DEAD)
-    
+
     if (previousStatus === Status.ALIVE) {
       sendTelegramNotification('Host ' + ipAddress + ' is now dead')
     }
@@ -170,18 +170,18 @@ function handleNormalResponse(ipAddress, avgRTT, lossPercentage) {
 async function sendTelegramNotification(message) {
   const now = Date.now()
   const waitTime = lastTelegramSendTime + TELEGRAM_SEND_DELAY - now
-  
+
   if (waitTime > 0) {
     console.log('[PingService] Waiting ' + waitTime + 'ms before sending Telegram message')
     await sleep(waitTime)
   }
-  
+
   try {
     let modifiedText = message.replace(/alive/g, '✅')
     modifiedText = modifiedText.replace(/dead/g, '❌')
     modifiedText = modifiedText.replace(/Warning/g, '⚠️')
     modifiedText = modifiedText.replace(/Info/g, 'ℹ️')
-    
+
     console.log('[PingService] Sending Telegram message:', modifiedText)
     await sendTelegramMessage(modifiedText)
     lastTelegramSendTime = Date.now()
