@@ -18,7 +18,7 @@ let aliveHosts = new Set()
 let hostStatusMap = new Map()
 let failureCountMap = new Map()
 let lastTelegramSendTime = 0
-const FAILURE_THRESHOLD = 3
+const FAILURE_THRESHOLD = 2
 
 const Status = {
   ALIVE: 'alive',
@@ -32,17 +32,9 @@ function sleep(ms) {
 // Simple ping probe for basic monitoring
 async function pingProbe(ipAddresses) {
   try {
-    if (!LOCAL_NETWATCHING_ENABLED) {
-      console.log('[PingService] Local network watching is disabled')
-      return
-    }
+    if (!LOCAL_NETWATCHING_ENABLED) return
 
-    if (!ipAddresses || ipAddresses.length === 0) {
-      console.log('[PingService] No IP addresses provided for ping probe')
-      return
-    }
-
-    console.log('[PingService] Starting ping probe for ' + ipAddresses.length + ' hosts')
+    if (!ipAddresses || ipAddresses.length === 0) return
 
     const pingPromises = ipAddresses.map(async ipAddress => {
       const command = 'ping'
@@ -53,35 +45,27 @@ async function pingProbe(ipAddresses) {
         const stdout = result.stdout
 
         if (stdout.includes('1 received')) {
-          handleHostAlive(ipAddress)
+          await handleHostAlive(ipAddress, 'basic')
         } else {
-          handleHostDead(ipAddress)
+          await handleHostDead(ipAddress, 'ping timeout', 'basic')
         }
       } catch (err) {
-        handleHostDead(ipAddress)
+        await handleHostDead(ipAddress, 'ping timeout', 'basic')
       }
     })
 
     await Promise.all(pingPromises)
   } catch (err) {
-    console.error('[PingService] Error in ping probe:', err)
+    console.error('[PingService] Ping probe error:', err?.message || 'Unknown error')
   }
 }
 
 // Enhanced ping with packet loss monitoring
 async function pingProbeWithDelay(ipAddresses) {
   try {
-    if (!LOCAL_NETWATCHING_ENABLED) {
-      console.log('[PingService] Local network watching is disabled')
-      return
-    }
+    if (!LOCAL_NETWATCHING_ENABLED) return
 
-    if (!ipAddresses || ipAddresses.length === 0) {
-      console.log('[PingService] No IP addresses provided for delay ping probe')
-      return
-    }
-
-    console.log('[PingService] Starting delay ping probe for ' + ipAddresses.length + ' hosts')
+    if (!ipAddresses || ipAddresses.length === 0) return
 
     const probePromises = ipAddresses.map(async ipAddress => {
       let completedPings = 0
@@ -111,21 +95,21 @@ async function pingProbeWithDelay(ipAddresses) {
       const lossPercentage = lostPings / PING_COUNT_FOR_DELAY
 
       if (lossPercentage > PACKET_LOSS_THRESHOLD) {
-        handlePacketLoss(ipAddress, lossPercentage)
+        await handlePacketLoss(ipAddress, lossPercentage)
       } else {
         const avgRTT = rttSum / (completedPings - lostPings)
-        handleNormalResponse(ipAddress, avgRTT, lossPercentage)
+        await handleNormalResponse(ipAddress, avgRTT, lossPercentage)
       }
     })
 
     await Promise.all(probePromises)
   } catch (err) {
-    console.error('[PingService] Error in delay ping probe:', err)
+    console.error('[PingService] Delay probe error:', err?.message || 'Unknown error')
   }
 }
 
 // Handle host status changes
-function handleHostAlive(ipAddress, monitorType = 'basic') {
+async function handleHostAlive(ipAddress, monitorType = 'basic') {
   const key = ipAddress + '_' + monitorType
   const previousStatus = hostStatusMap.get(key)
 
@@ -138,12 +122,13 @@ function handleHostAlive(ipAddress, monitorType = 'basic') {
     hostStatusMap.set(key, Status.ALIVE)
 
     if (previousStatus === Status.DEAD) {
-      sendTelegramNotification('Host ' + ipAddress + ' is now alive')
+      console.log('[PingService] Host ' + ipAddress + ' recovered')
+      await sendTelegramNotification('Host ' + ipAddress + ' is now alive')
     }
   }
 }
 
-function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 'basic') {
+async function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 'basic') {
   const key = ipAddress + '_' + monitorType
   const previousStatus = hostStatusMap.get(key)
 
@@ -154,39 +139,36 @@ function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 'basic
 
   // Only mark as dead and send notification after threshold failures
   if (newFailures >= FAILURE_THRESHOLD) {
-    if (previousStatus === Status.ALIVE || !hostStatusMap.has(key)) {
+    if (previousStatus !== Status.DEAD) {
       aliveHosts.delete(key)
       deadHosts.add(key)
       hostStatusMap.set(key, Status.DEAD)
 
-      if (previousStatus === Status.ALIVE) {
-        let message = 'Host ' + ipAddress + ' is now dead'
-        if (reason.includes('packet loss')) {
-          message = 'Warning: Host ' + ipAddress + ' has high packet loss'
-        }
-        sendTelegramNotification(message)
+      console.log('[PingService] Host ' + ipAddress + ' is down (' + reason + ')')
+
+      let message = 'Host ' + ipAddress + ' is now dead'
+      if (reason.includes('packet loss')) {
+        message = 'Warning: Host ' + ipAddress + ' has high packet loss'
       }
+      await sendTelegramNotification(message)
     }
   } else {
-    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ', ' + monitorType + ')')
+    console.log('[PingService] Host ' + ipAddress + ' failed ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ')')
   }
 }
 
-function handlePacketLoss(ipAddress, lossPercentage) {
+async function handlePacketLoss(ipAddress, lossPercentage) {
   const lossPercent = Math.round(lossPercentage * 100)
-  console.log('[PingService] High packet loss for ' + ipAddress + ': ' + lossPercent + '%')
-
-  // Use same failure logic as regular ping
-  handleHostDead(ipAddress, 'packet loss ' + lossPercent + '%')
+  await handleHostDead(ipAddress, 'packet loss ' + lossPercent + '%', 'delay')
 }
 
-function handleNormalResponse(ipAddress, avgRTT, lossPercentage) {
-  if (avgRTT > 0) {
+async function handleNormalResponse(ipAddress, avgRTT, lossPercentage) {
+  // Only log RTT if significantly high
+  if (avgRTT > 100) {
     const rtt = Math.round(avgRTT)
-    const loss = Math.round(lossPercentage * 100)
-    console.log('[PingService] ' + ipAddress + ' - RTT: ' + rtt + 'ms, Loss: ' + loss + '%')
+    console.log('[PingService] ' + ipAddress + ' high RTT: ' + rtt + 'ms')
   }
-  handleHostAlive(ipAddress)
+  await handleHostAlive(ipAddress, 'delay')
 }
 
 // Send Telegram notifications with rate limiting
@@ -195,7 +177,6 @@ async function sendTelegramNotification(message) {
   const waitTime = lastTelegramSendTime + TELEGRAM_SEND_DELAY - now
 
   if (waitTime > 0) {
-    console.log('[PingService] Waiting ' + waitTime + 'ms before sending Telegram message')
     await sleep(waitTime)
   }
 
@@ -205,11 +186,10 @@ async function sendTelegramNotification(message) {
     modifiedText = modifiedText.replace(/Warning/g, '⚠️')
     modifiedText = modifiedText.replace(/Info/g, 'ℹ️')
 
-    console.log('[PingService] Sending Telegram message:', modifiedText)
     await sendTgMessage(modifiedText)
     lastTelegramSendTime = Date.now()
   } catch (error) {
-    console.error('[PingService] Error sending Telegram message:', error?.message || error)
+    console.error('[PingService] Telegram send failed:', error?.message || 'Unknown error')
   }
 }
 
@@ -239,7 +219,7 @@ async function startNetworkMonitoring() {
 
       setTimeout(monitoringLoop, PING_INTERVAL)
     } catch (err) {
-      console.error('[PingService] Error in monitoring loop:', err)
+      console.error('[PingService] Monitoring error:', err?.message || 'Unknown error')
       setTimeout(monitoringLoop, PING_INTERVAL)
     }
   }
@@ -258,13 +238,11 @@ function getHostStatus() {
 
 // Legacy compatibility functions
 async function netWatchPingerProbe(ipAddresses) {
-  console.log('[PingService] Legacy function called - redirecting to pingProbe')
   const ipList = ipAddresses.map(ip => ip.ip_address || ip)
   await pingProbe(ipList)
 }
 
 async function netWatchPingerWithDelay(ipAddresses) {
-  console.log('[PingService] Legacy function called - redirecting to pingProbeWithDelay')
   const ipList = ipAddresses.map(ip => ip.ip_address || ip)
   await pingProbeWithDelay(ipList)
 }
