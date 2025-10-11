@@ -10,9 +10,9 @@ async function netWatchPingerProbe(ipAddresses) {
     console.log('[PingService] Local network watching is disabled')
     return
   }
-  
+
   console.log('[PingService] Running ping probe for', ipAddresses.length, 'hosts')
-  
+
   for (const ipObj of ipAddresses) {
     const ipAddress = ipObj.ip_address || ipObj
     try {
@@ -33,13 +33,13 @@ async function netWatchPingerWithDelay(ipAddresses) {
     console.log('[PingService] Local network watching is disabled')
     return
   }
-  
+
   console.log('[PingService] Running enhanced ping for', ipAddresses.length, 'hosts')
-  
+
   for (const ipAddress of ipAddresses) {
     let lostPings = 0
     const pingCount = 10
-    
+
     for (let i = 0; i < pingCount; i++) {
       try {
         const result = await runCommand('ping', ['-c', '1', ipAddress])
@@ -50,7 +50,7 @@ async function netWatchPingerWithDelay(ipAddresses) {
         lostPings++
       }
     }
-    
+
     const lossPercent = Math.round((lostPings / pingCount) * 100)
     console.log('[PingService] Host', ipAddress, 'packet loss:', lossPercent + '%')
   }
