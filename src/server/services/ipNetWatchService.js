@@ -173,7 +173,7 @@ function handleHostDead(ipAddress, reason = 'ping timeout') {
 function handlePacketLoss(ipAddress, lossPercentage) {
   const lossPercent = Math.round(lossPercentage * 100)
   console.log('[PingService] High packet loss for ' + ipAddress + ': ' + lossPercent + '%')
-  
+
   // Use same failure logic as regular ping
   handleHostDead(ipAddress, 'packet loss ' + lossPercent + '%')
 }
