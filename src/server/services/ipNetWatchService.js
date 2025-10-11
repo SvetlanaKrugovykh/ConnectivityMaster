@@ -186,6 +186,8 @@ async function sendTelegramNotification(message) {
     modifiedText = modifiedText.replace(/Warning/g, '⚠️')
     modifiedText = modifiedText.replace(/Info/g, 'ℹ️')
 
+    modifiedText = '🚨🚨🚨 L9 ' + modifiedText
+
     await sendTgMessage(modifiedText)
     lastTelegramSendTime = Date.now()
   } catch (error) {
