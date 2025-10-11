@@ -16,7 +16,9 @@ const TELEGRAM_SEND_DELAY = 2000
 let deadHosts = new Set()
 let aliveHosts = new Set()
 let hostStatusMap = new Map()
+let failureCountMap = new Map()
 let lastTelegramSendTime = 0
+const FAILURE_THRESHOLD = 3
 
 const Status = {
   ALIVE: 'alive',
@@ -125,6 +127,9 @@ async function pingProbeWithDelay(ipAddresses) {
 // Handle host status changes
 function handleHostAlive(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
+  
+  // Reset failure counter on successful ping
+  failureCountMap.set(ipAddress, 0)
 
   if (previousStatus === Status.DEAD || !hostStatusMap.has(ipAddress)) {
     deadHosts.delete(ipAddress)
@@ -139,15 +144,25 @@ function handleHostAlive(ipAddress) {
 
 function handleHostDead(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
+  
+  // Increment failure counter
+  const currentFailures = failureCountMap.get(ipAddress) || 0
+  const newFailures = currentFailures + 1
+  failureCountMap.set(ipAddress, newFailures)
 
-  if (previousStatus === Status.ALIVE || !hostStatusMap.has(ipAddress)) {
-    aliveHosts.delete(ipAddress)
-    deadHosts.add(ipAddress)
-    hostStatusMap.set(ipAddress, Status.DEAD)
+  // Only mark as dead and send notification after threshold failures
+  if (newFailures >= FAILURE_THRESHOLD) {
+    if (previousStatus === Status.ALIVE || !hostStatusMap.has(ipAddress)) {
+      aliveHosts.delete(ipAddress)
+      deadHosts.add(ipAddress)
+      hostStatusMap.set(ipAddress, Status.DEAD)
 
-    if (previousStatus === Status.ALIVE) {
-      sendTelegramNotification('Host ' + ipAddress + ' is now dead')
+      if (previousStatus === Status.ALIVE) {
+        sendTelegramNotification('Host ' + ipAddress + ' is now dead')
+      }
     }
+  } else {
+    console.log('[PingService] Host ' + ipAddress + ' failed ping ' + newFailures + '/' + FAILURE_THRESHOLD)
   }
 }
 
