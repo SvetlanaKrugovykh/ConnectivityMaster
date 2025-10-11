@@ -470,7 +470,7 @@ console.error('[PingService] Error in ping probe:', err)
             // Enhanced ping monitoring with delay analysis    removeFromList,
 
             if (LOCAL_PING_WITH_DELAY_IP_LIST.length > 0) {
-              addToList,
+            addToList,
 
               await pingProbeWithDelay(LOCAL_PING_WITH_DELAY_IP_LIST)    fromStatus,
 
