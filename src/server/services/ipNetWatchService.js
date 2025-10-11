@@ -7,7 +7,7 @@ const LOCAL_NETWATCHING_ENABLED = process.env.LOCAL_NETWATCHING_ENABLED === 'tru
 const LOCAL_PING_IP_LIST = process.env.LOCAL_PING_IP_LIST?.split(',').map(ip => ip.trim()).filter(ip => ip) || []
 const LOCAL_PING_WITH_DELAY_IP_LIST = process.env.LOCAL_PING_WITH_DELAY_IP_LIST?.split(',').map(ip => ip.trim()).filter(ip => ip) || []
 const PING_INTERVAL = parseInt(process.env.LOCAL_PING_INTERVAL) || 30000
-const PING_SOURCE_IP = process.env.PING_SOURCE_IP || '91.220.106.2'
+const PING_SOURCE_IP = process.env.PING_SOURCE_IP
 const PING_COUNT_FOR_DELAY = parseInt(process.env.PING_COUNT_FOR_DELAY) || 50
 const PACKET_LOSS_THRESHOLD = parseFloat(process.env.PACKET_LOSS_THRESHOLD) || 0.2
 const TELEGRAM_SEND_DELAY = 2000
@@ -245,6 +245,7 @@ async function netWatchPingerWithDelay(ipAddresses) {
   const ipList = ipAddresses.map(ip => ip.ip_address || ip)
   await pingProbeWithDelay(ipList)
 }
+
 
 module.exports = {
   pingProbe,

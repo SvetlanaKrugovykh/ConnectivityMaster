@@ -81,3 +81,8 @@ if (process.env.ENABLE_REDIRECT_API === 'true') {
     console.log(`${new Date()}:[Redirect] Service listening on ${address}`)
   })
 }
+
+if (process.env.LOCAL_NETWATCHING_ENABLED === 'true') {
+  const { startNetworkMonitoring } = require('./services/ipNetWatchService')
+  startNetworkMonitoring()
+}
