@@ -127,7 +127,7 @@ async function pingProbeWithDelay(ipAddresses) {
 // Handle host status changes
 function handleHostAlive(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
-  
+
   // Reset failure counter on successful ping
   failureCountMap.set(ipAddress, 0)
 
@@ -144,7 +144,7 @@ function handleHostAlive(ipAddress) {
 
 function handleHostDead(ipAddress) {
   const previousStatus = hostStatusMap.get(ipAddress)
-  
+
   // Increment failure counter
   const currentFailures = failureCountMap.get(ipAddress) || 0
   const newFailures = currentFailures + 1
