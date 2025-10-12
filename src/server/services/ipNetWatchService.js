@@ -80,8 +80,8 @@ async function pingProbeWithDelay(ipAddresses) {
       for (let i = 0; i < PING_COUNT_FOR_DELAY; i++) {
         const command = 'ping'
         const args = USE_PING_SOURCE_IP && PING_SOURCE_IP
-          ? ['-c', '1', '-I', PING_SOURCE_IP, ipAddress]
-          : ['-c', '1', ipAddress]
+          ? ['-c', '1', '-W', '3', '-I', PING_SOURCE_IP, ipAddress]
+          : ['-c', '1', '-W', '3', ipAddress]
 
         try {
           const result = await runCommand(command, args)
