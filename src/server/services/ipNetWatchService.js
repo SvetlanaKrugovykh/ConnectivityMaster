@@ -45,7 +45,7 @@ async function pingProbe(ipAddresses) {
         const result = await runCommand(command, args)
         const stdout = result.stdout
 
-        if (stdout.includes('1 received')) {
+        if (stdout.includes('1 packets received') || stdout.includes('1 received')) {
           await handleHostAlive(ipAddress, 'basic')
         } else {
           await handleHostDead(ipAddress, 'ping timeout', 'basic')
@@ -82,9 +82,10 @@ async function pingProbeWithDelay(ipAddresses) {
         try {
           const result = await runCommand(command, args)
           const stdout = result.stdout
-          const match = stdout.match(/time=([0-9.]+) ms/)
 
-          if (stdout.includes('1 received')) {
+          // FreeBSD ping output check - look for "1 packets received"  
+          if (stdout.includes('1 packets received') || stdout.includes('1 received')) {
+            const match = stdout.match(/time=([0-9.]+) ms/)
             rttSum += match ? parseFloat(match[1]) : 0
           } else {
             lostPings++

@@ -93,8 +93,11 @@ async function runCommand(command, args = [], value = '') {
 
       return stdout.trim()
     } else {
-      if (stdout.length > 0) console.log(`${new Date()}: ${command} out: ${stdout}`)
-      if (stderr.length > 0) console.error(`${new Date()}: ${command} err: ${stderr}`)
+      // Don't log ping output to avoid spam
+      if (command !== 'ping') {
+        if (stdout.length > 0) console.log(`${new Date()}: ${command} out: ${stdout}`)
+        if (stderr.length > 0) console.error(`${new Date()}: ${command} err: ${stderr}`)
+      }
       return { stdout, stderr }
     }
   } catch (error) {
