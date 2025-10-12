@@ -8,6 +8,7 @@ const LOCAL_PING_IP_LIST = process.env.LOCAL_PING_IP_LIST?.split(',').map(ip => 
 const LOCAL_PING_WITH_DELAY_IP_LIST = process.env.LOCAL_PING_WITH_DELAY_IP_LIST?.split(',').map(ip => ip.trim()).filter(ip => ip) || []
 const PING_INTERVAL = parseInt(process.env.LOCAL_PING_INTERVAL) || 30000
 const PING_SOURCE_IP = process.env.PING_SOURCE_IP
+const USE_PING_SOURCE_IP = process.env.USE_PING_SOURCE_IP === 'true'
 const PING_COUNT_FOR_DELAY = parseInt(process.env.PING_COUNT_FOR_DELAY) || 50
 const PACKET_LOSS_THRESHOLD = parseFloat(process.env.PACKET_LOSS_THRESHOLD) || 0.2
 const TELEGRAM_SEND_DELAY = 2000
@@ -74,7 +75,9 @@ async function pingProbeWithDelay(ipAddresses) {
 
       for (let i = 0; i < PING_COUNT_FOR_DELAY; i++) {
         const command = 'ping'
-        const args = ['-c', '1', '-I', PING_SOURCE_IP, ipAddress]
+        const args = USE_PING_SOURCE_IP && PING_SOURCE_IP
+          ? ['-c', '1', '-I', PING_SOURCE_IP, ipAddress]
+          : ['-c', '1', ipAddress]
 
         try {
           const result = await runCommand(command, args)
