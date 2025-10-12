@@ -147,6 +147,8 @@ async function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 
   const newFailures = currentFailures + 1
   failureCountMap.set(key, newFailures)
 
+  console.log('[PingService] Host ' + ipAddress + ' failed ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ')')
+
   // Only mark as dead and send notification after threshold failures
   if (newFailures >= FAILURE_THRESHOLD) {
     if (previousStatus !== Status.DEAD) {
@@ -162,8 +164,6 @@ async function handleHostDead(ipAddress, reason = 'ping timeout', monitorType = 
       }
       await sendTelegramNotification(message)
     }
-  } else {
-    console.log('[PingService] Host ' + ipAddress + ' failed ' + newFailures + '/' + FAILURE_THRESHOLD + ' (' + reason + ')')
   }
 }
 
