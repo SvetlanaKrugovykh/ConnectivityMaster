@@ -4,7 +4,12 @@ require('dotenv').config()
 
 async function runCommand(command, args = [], value = '') {
   let fullCommand = command
-  const timeout = Number(process.env.COMMAND_TIMEOUT) || 20000
+  let timeout = Number(process.env.COMMAND_TIMEOUT) || 20000
+
+  // Shorter timeout for ping commands
+  if (command === 'ping') {
+    timeout = Number(process.env.PING_TIMEOUT) || 5000
+  }
 
   if (command === 'snmpwalk' || command === 'snmpget') {
     let localArgs = [...args]
