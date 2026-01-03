@@ -16,7 +16,8 @@ async function runCommand(command, args = [], value = '') {
     let isSnmpSingleOid = false
     let snmpTimeoutSec = Math.floor(timeout / 1000) || 5
 
-    const oidArgs = args.filter(a => /^\.?\d+(\.\d+)+$/.test(a))
+    // Match OID with or without pipe and command (e.g., ".1.3.6.1.2.1.17.7.1.2.2.1.2 | wc -l")
+    const oidArgs = args.filter(a => /^\.?\d+(\.\d+)+(.*)?$/.test(a))
     if (oidArgs.length === 1 && value && value.length > 0) {
       isSnmpSingleOid = true
     }
