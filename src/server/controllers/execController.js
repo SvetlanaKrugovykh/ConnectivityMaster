@@ -3,13 +3,19 @@ const execCmdService = require('../services/execCmdService')
 
 module.exports.execCmd = async function (request, _reply) {
   const { cmdText, value } = request.body
-  const message = await execCmdService.execCommand_(cmdText, value)
+  
+  try {
+    const message = await execCmdService.execCommand_(cmdText, value)
+    
+    if (!message) {
+      throw new HttpError[501]('Command returned empty result')
+    }
 
-  if (!message) {
-    throw new HttpError[501]('Command execution failed')
-  }
-
-  return {
-    result: message
+    return {
+      result: message
+    }
+  } catch (error) {
+    console.error(`[execCmd] Error: ${error.message}`)
+    throw new HttpError[501](error.message || 'Command execution failed')
   }
 }

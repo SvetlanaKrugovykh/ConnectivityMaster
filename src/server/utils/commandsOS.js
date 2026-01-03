@@ -44,6 +44,8 @@ async function runCommand(command, args = [], value = '') {
     }
   }
 
+  console.log(`[runCommand] Executing: ${fullCommand}`)
+  
   try {
     const { stdout, stderr } = await exec(fullCommand, {
       timeout,
