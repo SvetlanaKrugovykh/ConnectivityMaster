@@ -44,7 +44,9 @@ async function runCommand(command, args = [], value = '') {
     }
   }
 
-  console.log(`[runCommand] Executing: ${fullCommand}`)
+  if (process.env.DEBUG_LEVEL === 'verbose') {
+    console.log(`[runCommand] Executing: ${fullCommand}`)
+  }
   
   try {
     const { stdout, stderr } = await exec(fullCommand, {
@@ -102,7 +104,7 @@ async function runCommand(command, args = [], value = '') {
       return stdout.trim()
     } else {
       // Don't log ping output to avoid spam
-      if (command !== 'ping') {
+      if (command !== 'ping' && process.env.DEBUG_LEVEL === 'verbose') {
         if (stdout.length > 0) console.log(`${new Date()}: ${command} out: ${stdout}`)
         if (stderr.length > 0) console.error(`${new Date()}: ${command} err: ${stderr}`)
       }

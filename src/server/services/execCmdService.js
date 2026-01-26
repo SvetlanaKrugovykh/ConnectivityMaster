@@ -2,7 +2,9 @@ const { runCommand } = require("../utils/commandsOS")
 
 module.exports.execCommand_ = async function (cmdText, value) {
 	try {
-		console.log(`[execCommand] Running: ${cmdText}${value ? ` with value: ${value}` : ''}`)
+		if (process.env.DEBUG_LEVEL === 'verbose') {
+			console.log(`[execCommand] Running: ${cmdText}${value ? ` with value: ${value}` : ''}`)
+		}
 		const addCommand = await runCommand(cmdText, [], value)
 		// runCommand may return either a string (for SNMP) or an object with stdout/stderr (for generic commands)
 		if (typeof addCommand === "string") {
