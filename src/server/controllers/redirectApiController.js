@@ -176,6 +176,9 @@ module.exports.completeQueueTask = async function (request, reply) {
       clientName: request.headers['x-client-name'] || ''
     }
 
+    // Log incoming request
+    console.log(`[${new Date().toISOString()}] POST /queue/complete from device:`, deviceInfo)
+
     // Check required header
     if (!deviceInfo.deviceId) {
       return reply.code(400).send({
