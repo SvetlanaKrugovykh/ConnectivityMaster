@@ -5,11 +5,16 @@ const allowedIPAddresses = process.env.LINK_PAY_ALLOWED_IPS.split(',')
 
 const restrictIPMiddleware = (req, reply, done) => {
   const clientIP = req.ip
+  const monitoringServerIP = process.env.MONITORING_SERVER_IP;
   if (!allowedIPAddresses.includes(clientIP)) {
-    console.log(`${new Date()}: Forbidden IP: ${clientIP}`)
+    if (clientIP !== monitoringServerIP) {
+      console.log(`${new Date()}: Forbidden IP: ${clientIP}`)
+    }
     reply.code(403).send('Forbidden')
   } else {
-    console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
+    if (clientIP !== monitoringServerIP) {
+      console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
+    }
     done()
   }
 }
