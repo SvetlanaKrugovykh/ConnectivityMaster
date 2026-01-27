@@ -18,11 +18,16 @@ const restrictIPSubnetMiddleware = (req, reply, done) => {
     console.log(`First 35 characters of req.url: ${urlSnippet}`)
   }
 
+  const monitoringServerIP = process.env.MONITORING_SERVER_IP;
   if (!ipRangeCheck(clientIP, allowedSubnets)) {
-    console.log(`${new Date()}: Client IP is Forbidden: ${clientIP}`)
+    if (clientIP !== monitoringServerIP) {
+      console.log(`${new Date()}: Client IP is Forbidden: ${clientIP}`)
+    }
     reply.code(403).send('Forbidden')
   } else {
-    console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
+    if (clientIP !== monitoringServerIP) {
+      console.log(`${new Date()}:Client IP is allowed: ${clientIP}`)
+    }
     done()
   }
 }
