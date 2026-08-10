@@ -56,7 +56,27 @@ function loadEnvFile(envPath) {
   }
 }
 
-loadEnvFile(path.join(__dirname, '.env'));
+// Ищет .env, поднимаясь от startDir вверх по дереву каталогов (как это
+// обычно делает dotenv в моно-репо/проектах с вложенной структурой).
+// Останавливается на первом найденном .env либо на корне файловой системы.
+// Явный путь можно задать через ENV_FILE_PATH (переменную окружения ОС,
+// не самого .env — её нужно экспортировать в shell/systemd-юните ДО запуска).
+function findEnvFile(startDir, maxLevelsUp = 12) {
+  if (process.env.ENV_FILE_PATH) return process.env.ENV_FILE_PATH;
+
+  let dir = startDir;
+  for (let i = 0; i <= maxLevelsUp; i++) {
+    const candidate = path.join(dir, '.env');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // достигли корня файловой системы
+    dir = parent;
+  }
+  return path.join(startDir, '.env'); // фоллбэк — прежнее поведение, если нигде не нашли
+}
+
+const resolvedEnvPath = findEnvFile(__dirname);
+loadEnvFile(resolvedEnvPath);
 
 function envList(name, def = []) {
   const raw = process.env[name];
@@ -269,8 +289,15 @@ function writeStatusFile() {
 
 
 function sendTelegramMessage(text) {
-  if (CONFIG.dryRun || !CONFIG.telegramBotToken || !CONFIG.telegramChatId) {
-    console.log('[DRY-RUN / no telegram config] ' + text);
+  if (CONFIG.dryRun) {
+    console.log('[DRY-RUN, реально не отправлено] ' + text);
+    return;
+  }
+  if (!CONFIG.telegramBotToken || !CONFIG.telegramChatId) {
+    console.log(
+      `[не отправлено: не задан(ы) ${!CONFIG.telegramBotToken ? 'TELEGRAM_BOT_TOKEN ' : ''}` +
+      `${!CONFIG.telegramChatId ? 'TELEGRAM_CHAT_ID' : ''}] ` + text
+    );
     return;
   }
 
@@ -442,6 +469,7 @@ function printStatus() {
   }
   const data = JSON.parse(fs.readFileSync(CONFIG.statusFilePath, 'utf8'));
   console.log('=== Статус детектора ===');
+  console.log(`Файл .env загружен из: ${resolvedEnvPath}${fs.existsSync(resolvedEnvPath) ? '' : '  (!! файл не существует — конфиг не подхватился)'}`);
   console.log(`Запущен:                ${data.startedAt}`);
   console.log(`Последний опрос:        ${data.lastPollAt}`);
   console.log(`Циклов опроса всего:    ${data.pollCount}`);
