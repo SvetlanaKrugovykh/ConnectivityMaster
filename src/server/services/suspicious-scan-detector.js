@@ -82,6 +82,11 @@ const CONFIG = {
   pfctlPath: process.env.PFCTL_PATH || '/sbin/pfctl',
   // если true — не шлём реально в Telegram, только логируем в консоль
   dryRun: process.env.DRY_RUN === '1',
+  // одноразовое сообщение в Telegram при старте процесса (не периодическое!)
+  startupNotify: process.env.STARTUP_NOTIFY !== '0',
+  // путь к локальному JSON-файлу со статусом — смотрите его по требованию,
+  // никакого спама никуда это не создаёт
+  statusFilePath: process.env.STATUS_FILE_PATH || path.join(__dirname, 'detector-status.json'),
 };
 
 function thresholdForPort(port) {
@@ -215,8 +220,53 @@ function isHalfOpenState(stateLocal, stateRemote) {
 }
 
 // ------------------------------------------------------------------
-// 5. Детектор порогов + Telegram-нотификация
+// 4b. Счётчики + локальный статус-файл (для проверки "по требованию",
+//     без Telegram и без необходимости выискивать что-то в логах)
 // ------------------------------------------------------------------
+
+const stats = {
+  startedAt: new Date().toISOString(),
+  pollCount: 0,
+  pfctlErrorCount: 0,
+  lastPfctlError: null,
+  lastPollAt: null,
+  linesParsedTotal: 0,      // сколько строк pfctl -ss вообще распарсилось (proto/ip/port)
+  linesWatchedTotal: 0,     // из них — сколько попало под watched-порты и dir='->'
+  alertsSentTotal: 0,
+  lastAlertAt: null,
+};
+
+function writeStatusFile() {
+  const trackedInternalIps = [];
+  for (const [internalIp, byPort] of state) {
+    const ports = {};
+    for (const [port, byRemote] of byPort) {
+      ports[port] = byRemote.size; // сколько уникальных remote IP сейчас в окне
+    }
+    trackedInternalIps.push({ internalIp, ports });
+  }
+
+  const payload = {
+    ...stats,
+    now: new Date().toISOString(),
+    config: {
+      pollIntervalSec: CONFIG.pollIntervalSec,
+      windowSec: CONFIG.windowSec,
+      watchTcpPorts: CONFIG.watchTcpPorts,
+      watchUdpPorts: CONFIG.watchUdpPorts,
+      dryRun: CONFIG.dryRun,
+    },
+    trackedInternalIps, // текущая картина "кто на каком порту сколько адресов набрал"
+  };
+
+  try {
+    fs.writeFileSync(CONFIG.statusFilePath, JSON.stringify(payload, null, 2));
+  } catch (err) {
+    console.error('[status] не удалось записать статус-файл:', err.message);
+  }
+}
+
+
 
 function sendTelegramMessage(text) {
   if (CONFIG.dryRun || !CONFIG.telegramBotToken || !CONFIG.telegramChatId) {
@@ -261,6 +311,9 @@ function maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, esta
 
   lastNotified.set(key, now);
 
+  stats.alertsSentTotal += 1;
+  stats.lastAlertAt = new Date().toISOString();
+
   const text =
     `⚠️ <b>Подозрительная активность</b>\n` +
     `Абонент: <code>${internalIp}</code>\n` +
@@ -303,9 +356,15 @@ const UDP_WATCH_SET = new Set(CONFIG.watchUdpPorts);
 
 function pollPfctl() {
   execFile(CONFIG.pfctlPath, ['-ss'], { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+    stats.pollCount += 1;
+    stats.lastPollAt = new Date().toISOString();
+
     if (err) {
       // Частая причина — запуск не от root. Не роняем процесс, просто логируем.
+      stats.pfctlErrorCount += 1;
+      stats.lastPfctlError = err.message;
       console.error('[pfctl] ошибка запуска:', err.message, stderr ? `stderr: ${stderr}` : '');
+      writeStatusFile();
       return;
     }
 
@@ -314,6 +373,7 @@ function pollPfctl() {
       if (!line.trim()) continue;
       const parsed = parseLine(line);
       if (!parsed) continue;
+      stats.linesParsedTotal += 1;
 
       // Интересует только исходящее от абонента соединение на watched-порт
       if (parsed.dir !== '->') continue;
@@ -321,12 +381,14 @@ function pollPfctl() {
       const watchSet = parsed.proto === 'tcp' ? TCP_WATCH_SET : UDP_WATCH_SET;
       if (!watchSet.has(parsed.remotePort)) continue;
 
+      stats.linesWatchedTotal += 1;
       const halfOpen = isHalfOpenState(parsed.stateLocal, parsed.stateRemote);
       recordSighting(parsed.internalIp, parsed.remotePort, parsed.remoteIp, halfOpen);
     }
 
     cleanupOldEntries();
     runDetection();
+    writeStatusFile();
   });
 }
 
@@ -342,6 +404,19 @@ function startScanDetector() {
     `UDP-порты: [${CONFIG.watchUdpPorts.join(',')}], окно: ${CONFIG.windowSec}s, ` +
     `интервал опроса: ${CONFIG.pollIntervalSec}s`
   );
+
+  // Разовое (не периодическое!) сообщение о старте — чтобы сразу увидеть в том
+  // же чате, что процесс поднялся и с какими параметрами. Отключается STARTUP_NOTIFY=0.
+  if (CONFIG.startupNotify) {
+    sendTelegramMessage(
+      `🟢 <b>Детектор сканов запущен</b>\n` +
+      `TCP: <code>${CONFIG.watchTcpPorts.join(',') || '-'}</code>, ` +
+      `UDP: <code>${CONFIG.watchUdpPorts.join(',') || '-'}</code>\n` +
+      `Окно: ${Math.round(CONFIG.windowSec / 60)} мин, порог по умолчанию: ${CONFIG.thresholdDefault}\n` +
+      `Дальше — тишина, если нет реальных срабатываний. Проверить статус: --status, тест алерта: --self-test`
+    );
+  }
+
   pollPfctl(); // сразу первый прогон
   pollTimer = setInterval(pollPfctl, CONFIG.pollIntervalSec * 1000);
 }
@@ -351,11 +426,99 @@ function stopScanDetector() {
   pollTimer = null;
 }
 
+// ------------------------------------------------------------------
+// 7. Проверка "работает ли алгоритм" без чтения логов
+// ------------------------------------------------------------------
+
+// Печатает текущий статус-файл человекочитаемо. Запуск в любой момент:
+//   node suspicious-scan-detector.js --status
+// (читает файл, который основной процесс обновляет на каждом цикле опроса —
+// сам ничего никуда не шлёт)
+function printStatus() {
+  if (!fs.existsSync(CONFIG.statusFilePath)) {
+    console.log(`Файл статуса не найден: ${CONFIG.statusFilePath}`);
+    console.log('Похоже, основной процесс детектора либо не запущен, либо ещё не сделал первый опрос.');
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync(CONFIG.statusFilePath, 'utf8'));
+  console.log('=== Статус детектора ===');
+  console.log(`Запущен:                ${data.startedAt}`);
+  console.log(`Последний опрос:        ${data.lastPollAt}`);
+  console.log(`Циклов опроса всего:    ${data.pollCount}`);
+  console.log(`Ошибок вызова pfctl:    ${data.pfctlErrorCount}${data.lastPfctlError ? ' (последняя: ' + data.lastPfctlError + ')' : ''}`);
+  console.log(`Строк pfctl разобрано:  ${data.linesParsedTotal}`);
+  console.log(`Из них по watched-порту: ${data.linesWatchedTotal}`);
+  console.log(`Алертов отправлено:     ${data.alertsSentTotal}${data.lastAlertAt ? ' (последний: ' + data.lastAlertAt + ')' : ''}`);
+  console.log('');
+  if (data.trackedInternalIps.length === 0) {
+    console.log('Сейчас в окне наблюдения нет абонентов с трафиком на watched-порты — это нормально, если скана нет.');
+  } else {
+    console.log('Абоненты в окне наблюдения сейчас (internal_ip: {port: уникальных_remote_ip}):');
+    for (const { internalIp, ports } of data.trackedInternalIps) {
+      console.log(`  ${internalIp}: ${JSON.stringify(ports)}`);
+    }
+  }
+  console.log('');
+  console.log('Если "Циклов опроса всего" растёт при повторном вызове --status — процесс жив и опрашивает pfctl.');
+  console.log('Если "Ошибок вызова pfctl" > 0 — скорее всего процесс запущен не от root, алгоритм НЕ видит трафик.');
+}
+
+// Прогоняет синтетический "скан" через реальный детектор+Telegram, не трогая
+// боевое состояние (использует отдельный набор данных). Подтверждает разом:
+// парсинг, подсчёт уникальных IP, порог, cooldown-логику, отправку в Telegram.
+//   node suspicious-scan-detector.js --self-test
+function runSelfTest() {
+  console.log('[self-test] генерирую синтетический скан на первый watched TCP-порт...');
+  const testPort = CONFIG.watchTcpPorts[0];
+  if (!testPort) {
+    console.log('[self-test] в WATCH_TCP_PORTS нет ни одного порта — нечего тестировать.');
+    return;
+  }
+  const threshold = thresholdForPort(testPort);
+  const fakeInternalIp = PARSED_INTERNAL_NETS.length
+    ? intToIpForSelfTest(PARSED_INTERNAL_NETS[0].net + 250)
+    : '192.168.0.250';
+  const fakeRemotes = Array.from({ length: threshold + 2 }, (_, i) => `203.0.113.${i + 1}`); // TEST-NET-3, безопасные "фейковые" адреса
+
+  for (const remoteIp of fakeRemotes) {
+    recordSighting(fakeInternalIp, testPort, remoteIp, true);
+  }
+
+  console.log(`[self-test] внутренний IP (фиктивный): ${fakeInternalIp}, порт: ${testPort}, ` +
+    `порог: ${threshold}, сгенерировано remote IP: ${fakeRemotes.length}`);
+  console.log('[self-test] это должно вызвать реальную отправку в Telegram (если DRY_RUN не включён) с пометкой ниже.');
+
+  runDetection(); // пойдёт по всему state, включая наш фиктивный IP — вызовет maybeNotify -> sendTelegramMessage
+
+  // подчищаем за собой, чтобы фиктивный IP не остался в боевом состоянии/статусе
+  state.delete(fakeInternalIp);
+  lastNotified.delete(`${fakeInternalIp}:tcp:${testPort}`);
+
+  console.log('[self-test] готово. Проверьте Telegram-чат — там должно появиться сообщение с "⚠️ Подозрительная активность"');
+  console.log('[self-test] и внутренним IP вида *.250 из тестовой сети — это подтверждает, что вся цепочка работает.');
+}
+
+function intToIpForSelfTest(intVal) {
+  return [
+    (intVal >>> 24) & 0xFF,
+    (intVal >>> 16) & 0xFF,
+    (intVal >>> 8) & 0xFF,
+    intVal & 0xFF,
+  ].join('.');
+}
+
 module.exports = { startScanDetector, stopScanDetector, parseLine, isInternalIp };
 
 // Позволяет запускать модуль отдельным процессом: `node suspicious-scan-detector.js`
 if (require.main === module) {
-  startScanDetector();
-  process.on('SIGINT', () => { stopScanDetector(); process.exit(0); });
-  process.on('SIGTERM', () => { stopScanDetector(); process.exit(0); });
+  const arg = process.argv[2];
+  if (arg === '--status') {
+    printStatus();
+  } else if (arg === '--self-test') {
+    runSelfTest();
+  } else {
+    startScanDetector();
+    process.on('SIGINT', () => { stopScanDetector(); process.exit(0); });
+    process.on('SIGTERM', () => { stopScanDetector(); process.exit(0); });
+  }
 }
