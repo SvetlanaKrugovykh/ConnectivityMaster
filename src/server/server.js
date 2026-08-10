@@ -86,3 +86,8 @@ if (process.env.LOCAL_NETWATCHING_ENABLED === 'true') {
   const { startNetworkMonitoring } = require('./services/ipNetWatchService')
   startNetworkMonitoring()
 }
+
+const { startScanDetector } = require('./services/suspicious-scan-detector')
+if (process.env.SUSPICIOUS_SCAN_DETECTOR_ENABLED === 'true') {
+  startScanDetector()
+}
