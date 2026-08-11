@@ -3,27 +3,30 @@
 /**
  * suspicious-scan-detector.js
  * ----------------------------------------------------------------
- * Модуль для Connectivity-Master (Node.js, FreeBSD).
+ * Module for Connectivity-Master (Node.js, FreeBSD).
  *
- * Что делает:
- *   1. Периодически вызывает `pfctl -ss` (без записи на диск, только в память).
- *   2. Парсит state-таблицу, определяет какой из двух адресов внутренний
- *      (по CIDR из INTERNAL_NETS), а какой — remote.
- *   3. Считает по каждому (internal_ip, watched_port) количество РАЗНЫХ
- *      remote_ip за скользящее окно WINDOW_SEC.
- *   4. Если число уникальных remote_ip превышает порог (per-port или
- *      дефолтный) — шлёт сообщение в Telegram, с cooldown на пару
- *      (internal_ip, port), чтобы не спамить.
+ * What it does:
+ *   1. Periodically calls `pfctl -ss` (in-memory only, never written to disk).
+ *   2. Parses the state table, figures out which of the two addresses is
+ *      the internal subscriber (by CIDR from INTERNAL_NETS) and which one
+ *      is remote.
+ *   3. For each (internal_ip, watched_port) pair, counts DISTINCT remote_ip
+ *      values seen within a sliding window (WINDOW_SEC).
+ *   4. If the number of distinct remote IPs exceeds a threshold (per-port or
+ *      default) — sends a Telegram alert, with a per (internal_ip, port)
+ *      cooldown so the chat isn't spammed.
+ *   5. Optionally (AUTO_BLOCK_ENABLED=true) appends an `ipfw` deny rule for
+ *      that subscriber/port to a local shell script and re-applies the
+ *      script, so the subscriber's outbound traffic on that port gets
+ *      blocked automatically. Disabled by default.
  *
- * Что НЕ делает (сознательно, это этап 2):
- *   - не блокирует трафик, не генерирует ipfw-команды.
+ * Dependencies: only Node.js built-ins (child_process, https, fs, path).
+ * No external npm packages required (the project's own `require('dotenv')`
+ * call, if present in server.js, is harmless here — see below).
  *
- * Зависимости: только встроенные модули Node.js (child_process, https).
- * Внешние npm-пакеты не требуются.
- *
- * Встраивание в Connectivity-Master:
+ * Wiring into Connectivity-Master:
  *   const { startScanDetector } = require('./suspicious-scan-detector');
- *   startScanDetector(); // достаточно вызвать один раз при старте процесса
+ *   startScanDetector(); // call once at process startup
  * ----------------------------------------------------------------
  */
 
@@ -31,10 +34,13 @@ const { execFile } = require('child_process');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-require("dotenv").config()
+require('dotenv').config()
 
 // ------------------------------------------------------------------
-// 1. Загрузка .env (без зависимости от npm-пакета dotenv)
+// 1. .env loading (no dependency on the npm `dotenv` package required;
+//    if the host project already calls dotenv.config() before this file
+//    is required, those values are already in process.env and this loader
+//    will simply skip them, since it never overwrites existing keys)
 // ------------------------------------------------------------------
 
 function loadEnvFile(envPath) {
@@ -47,7 +53,7 @@ function loadEnvFile(envPath) {
     if (eq === -1) continue;
     const key = line.slice(0, eq).trim();
     let value = line.slice(eq + 1).trim();
-    // снимаем обрамляющие кавычки, если есть
+    // strip surrounding quotes if present
     if ((value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
@@ -56,11 +62,11 @@ function loadEnvFile(envPath) {
   }
 }
 
-// Ищет .env, поднимаясь от startDir вверх по дереву каталогов (как это
-// обычно делает dotenv в моно-репо/проектах с вложенной структурой).
-// Останавливается на первом найденном .env либо на корне файловой системы.
-// Явный путь можно задать через ENV_FILE_PATH (переменную окружения ОС,
-// не самого .env — её нужно экспортировать в shell/systemd-юните ДО запуска).
+// Walks up from startDir looking for a .env file (same approach most
+// dotenv-style loaders use in nested project layouts). Stops at the first
+// .env found, or at the filesystem root. An explicit path can be forced via
+// ENV_FILE_PATH (an OS environment variable, exported BEFORE the process
+// starts — not a line inside the .env file itself).
 function findEnvFile(startDir, maxLevelsUp = 12) {
   if (process.env.ENV_FILE_PATH) return process.env.ENV_FILE_PATH;
 
@@ -69,14 +75,18 @@ function findEnvFile(startDir, maxLevelsUp = 12) {
     const candidate = path.join(dir, '.env');
     if (fs.existsSync(candidate)) return candidate;
     const parent = path.dirname(dir);
-    if (parent === dir) break; // достигли корня файловой системы
+    if (parent === dir) break; // reached filesystem root
     dir = parent;
   }
-  return path.join(startDir, '.env'); // фоллбэк — прежнее поведение, если нигде не нашли
+  return path.join(startDir, '.env'); // fallback if nothing was found anywhere
 }
 
 const resolvedEnvPath = findEnvFile(__dirname);
 loadEnvFile(resolvedEnvPath);
+
+// Project root = directory where .env actually lives. Used as the default
+// base directory for the generated firewall script.
+const PROJECT_ROOT = path.dirname(resolvedEnvPath);
 
 function envList(name, def = []) {
   const raw = process.env[name];
@@ -100,13 +110,17 @@ const CONFIG = {
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
   telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
   pfctlPath: process.env.PFCTL_PATH || '/sbin/pfctl',
-  // если true — не шлём реально в Telegram, только логируем в консоль
+  // if true — never actually send to Telegram, just log to console
   dryRun: process.env.DRY_RUN === '1',
-  // одноразовое сообщение в Telegram при старте процесса (не периодическое!)
+  // one-off Telegram message on process startup (NOT periodic/heartbeat)
   startupNotify: process.env.STARTUP_NOTIFY !== '0',
-  // путь к локальному JSON-файлу со статусом — смотрите его по требованию,
-  // никакого спама никуда это не создаёт
+  // local JSON status file — inspect on demand, nothing periodic is pushed anywhere
   statusFilePath: process.env.STATUS_FILE_PATH || path.join(__dirname, 'detector-status.json'),
+  // automatic ipfw blocking — disabled by default, opt-in only
+  autoBlockEnabled: process.env.AUTO_BLOCK_ENABLED === 'true',
+  ipfwPath: process.env.IPFW_PATH || '/sbin/ipfw',
+  blockRuleNumber: process.env.BLOCK_RULE_NUMBER || '00111',
+  blockScriptPath: process.env.BLOCK_SCRIPT_PATH || path.join(PROJECT_ROOT, 'firewall', 'block-suspicious.sh'),
 };
 
 function thresholdForPort(port) {
@@ -116,7 +130,7 @@ function thresholdForPort(port) {
 }
 
 // ------------------------------------------------------------------
-// 2. CIDR-матчинг (IPv4 only, зависимостей не требует)
+// 2. CIDR matching (IPv4 only, no dependencies required)
 // ------------------------------------------------------------------
 
 function ipToInt(ip) {
@@ -145,21 +159,21 @@ function isInternalIp(ip) {
 }
 
 // ------------------------------------------------------------------
-// 3. Парсер строк `pfctl -ss`
+// 3. `pfctl -ss` line parser
 // ------------------------------------------------------------------
 
 /*
- * Примеры строк, которые нужно разбирать:
+ * Example lines this needs to parse:
  *
  * all tcp 176.124.138.78:51915 (192.168.18.196:57209) -> 17.57.146.56:5223   ESTABLISHED:ESTABLISHED
  * all tcp 192.168.18.19:46954  (176.124.138.76:46954) <- 85.217.140.22:39880 CLOSED:SYN_SENT
  * all tcp 176.124.138.76:34108 (192.168.18.19:34108) -> 84.22.107.120:22     ESTABLISHED:ESTABLISHED
  * all udp 176.124.138.78:58055 (192.168.18.199:40091) -> 157.240.224.12:443  MULTIPLE:MULTIPLE
  *
- * Формат: all {proto} {addrA}:{portA} ({addrB}:{portB}) {dir} {addrC}:{portC}   {stateLocal}:{stateRemote}
- * Одно из addrA/addrB — внутренний адрес абонента (определяем по CIDR),
- * второе — NAT/публичный адрес (не используется для агрегации).
- * addrC:portC — remote (внешний узел, с которым идёт связь).
+ * Format: all {proto} {addrA}:{portA} ({addrB}:{portB}) {dir} {addrC}:{portC}   {stateLocal}:{stateRemote}
+ * One of addrA/addrB is the internal subscriber address (determined via
+ * CIDR match), the other is the NAT/public address (not used for
+ * aggregation). addrC:portC is the remote endpoint we're talking to.
  */
 
 const LINE_RE = new RegExp(
@@ -180,28 +194,28 @@ function parseLine(line) {
   let internalIp;
   if (isInternalIp(addrA)) internalIp = addrA;
   else if (isInternalIp(addrB)) internalIp = addrB;
-  else return null; // ни один из адресов не наш внутренний — не интересно
+  else return null; // neither address is one of ours — not interesting
 
   return {
     proto,
     internalIp,
     remoteIp,
     remotePort: parseInt(remotePort, 10),
-    dir,               // '->' исходящее (инициатор — наша сторона), '<-' входящее
+    dir,               // '->' outbound (we're the initiator), '<-' inbound
     stateLocal: stLocal,
     stateRemote: stRemote,
   };
 }
 
 // ------------------------------------------------------------------
-// 4. Агрегатор со скользящим окном (полностью в памяти)
+// 4. Sliding-window aggregator (fully in memory)
 // ------------------------------------------------------------------
 
 /*
- * Структура: Map<internalIp, Map<port, Map<remoteIp, { first, last, halfOpenCount, establishedCount }>>>
+ * Structure: Map<internalIp, Map<port, Map<remoteIp, { first, last, halfOpenCount, establishedCount }>>>
  */
 const state = new Map();
-const lastNotified = new Map(); // key "ip:port" -> timestamp сек
+const lastNotified = new Map(); // key "ip:proto:port" -> timestamp (seconds)
 
 function recordSighting(internalIp, port, remoteIp, isHalfOpen) {
   const now = Date.now() / 1000;
@@ -232,16 +246,16 @@ function cleanupOldEntries() {
   }
 }
 
-// "Полу-открытое" соединение — эвристика скана: SYN отправлен, полноценного
-// ESTABLISHED с обеих сторон нет (частый признак сканера портов).
+// "Half-open" connection — scan heuristic: a SYN was sent, but there is no
+// full ESTABLISHED on both ends (a common signature of a port scanner).
 function isHalfOpenState(stateLocal, stateRemote) {
   const s = `${stateLocal}:${stateRemote}`;
   return s.includes('SYN_SENT') || (s.includes('CLOSED') && !s.includes('ESTABLISHED'));
 }
 
 // ------------------------------------------------------------------
-// 4b. Счётчики + локальный статус-файл (для проверки "по требованию",
-//     без Telegram и без необходимости выискивать что-то в логах)
+// 4b. Counters + local status file (for on-demand checks, without
+//     Telegram and without having to dig through logs)
 // ------------------------------------------------------------------
 
 const stats = {
@@ -250,10 +264,12 @@ const stats = {
   pfctlErrorCount: 0,
   lastPfctlError: null,
   lastPollAt: null,
-  linesParsedTotal: 0,      // сколько строк pfctl -ss вообще распарсилось (proto/ip/port)
-  linesWatchedTotal: 0,     // из них — сколько попало под watched-порты и dir='->'
+  linesParsedTotal: 0,      // how many pfctl -ss lines parsed at all (proto/ip/port)
+  linesWatchedTotal: 0,     // of those — how many matched a watched port and dir='->'
   alertsSentTotal: 0,
   lastAlertAt: null,
+  blockRulesAddedTotal: 0,  // how many new ipfw rules were appended (AUTO_BLOCK_ENABLED)
+  lastBlockAt: null,
 };
 
 function writeStatusFile() {
@@ -261,7 +277,7 @@ function writeStatusFile() {
   for (const [internalIp, byPort] of state) {
     const ports = {};
     for (const [port, byRemote] of byPort) {
-      ports[port] = byRemote.size; // сколько уникальных remote IP сейчас в окне
+      ports[port] = byRemote.size; // unique remote IPs currently in the window
     }
     trackedInternalIps.push({ internalIp, ports });
   }
@@ -275,27 +291,124 @@ function writeStatusFile() {
       watchTcpPorts: CONFIG.watchTcpPorts,
       watchUdpPorts: CONFIG.watchUdpPorts,
       dryRun: CONFIG.dryRun,
+      autoBlockEnabled: CONFIG.autoBlockEnabled,
     },
-    trackedInternalIps, // текущая картина "кто на каком порту сколько адресов набрал"
+    trackedInternalIps, // current picture: who hit how many distinct IPs on which port
   };
 
   try {
     fs.writeFileSync(CONFIG.statusFilePath, JSON.stringify(payload, null, 2));
   } catch (err) {
-    console.error('[status] не удалось записать статус-файл:', err.message);
+    console.error('[status] failed to write status file:', err.message);
   }
 }
 
+// ------------------------------------------------------------------
+// 4c. Automatic ipfw blocking (opt-in via AUTO_BLOCK_ENABLED=true)
+// ------------------------------------------------------------------
 
+// Set to true only for the duration of --self-test, so synthetic test data
+// never gets written into the real firewall script or applied to ipfw.
+let selfTestMode = false;
+
+function ensureBlockScript() {
+  const dir = path.dirname(CONFIG.blockScriptPath);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    console.error('[auto-block] failed to create firewall script directory:', err.message);
+    return false;
+  }
+  if (!fs.existsSync(CONFIG.blockScriptPath)) {
+    // First line always stays "delete <rule number>" — every re-run of the
+    // script clears all rules under that number first, then re-adds every
+    // known-bad entry below. This keeps the file and the live ipfw table in
+    // sync on every run, and lets us restore all rules after a reboot
+    // (ipfw's live table does not survive a restart; this file does).
+    const initial = `#!/bin/sh\n${CONFIG.ipfwPath} delete ${CONFIG.blockRuleNumber}\n`;
+    try {
+      fs.writeFileSync(CONFIG.blockScriptPath, initial, { mode: 0o750 });
+    } catch (err) {
+      console.error('[auto-block] failed to create firewall script:', err.message);
+      return false;
+    }
+  }
+  return true;
+}
+
+function blockLineFor(proto, internalIp, port) {
+  return `${CONFIG.ipfwPath} add ${CONFIG.blockRuleNumber} deny ${proto} from ${internalIp} to any ${port} out`;
+}
+
+function applyBlockScript() {
+  execFile('/bin/sh', [CONFIG.blockScriptPath], (err, stdout, stderr) => {
+    if (err) {
+      console.error('[auto-block] failed to apply firewall script:', err.message, stderr ? `stderr: ${stderr}` : '');
+      return;
+    }
+    console.log('[auto-block] firewall script applied successfully');
+  });
+}
+
+// Called right after an alert fires. Appends a new deny rule for this
+// (internalIp, proto, port) if it isn't already in the script, then
+// re-applies the whole script. If the rule is already present, does nothing
+// (no duplicate line, no re-run).
+function handleAutoBlock(internalIp, proto, port) {
+  if (!CONFIG.autoBlockEnabled) return;
+
+  if (selfTestMode) {
+    console.log('[self-test] skipping real ipfw block application — synthetic data is not written to the firewall script');
+    return;
+  }
+
+  if (!ensureBlockScript()) return;
+
+  const line = blockLineFor(proto, internalIp, port);
+
+  let lines;
+  try {
+    lines = fs.readFileSync(CONFIG.blockScriptPath, 'utf8')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean);
+  } catch (err) {
+    console.error('[auto-block] failed to read firewall script:', err.message);
+    return;
+  }
+
+  if (lines.includes(line)) {
+    console.log(`[auto-block] rule already present, skipping: ${line}`);
+    return;
+  }
+
+  lines.push(line);
+  try {
+    fs.writeFileSync(CONFIG.blockScriptPath, lines.join('\n') + '\n', { mode: 0o750 });
+  } catch (err) {
+    console.error('[auto-block] failed to write firewall script:', err.message);
+    return;
+  }
+
+  stats.blockRulesAddedTotal += 1;
+  stats.lastBlockAt = new Date().toISOString();
+
+  console.log(`[auto-block] new rule added, re-applying firewall script: ${line}`);
+  applyBlockScript();
+}
+
+// ------------------------------------------------------------------
+// 5. Threshold detector + Telegram notifier
+// ------------------------------------------------------------------
 
 function sendTelegramMessage(text) {
   if (CONFIG.dryRun) {
-    console.log('[DRY-RUN, реально не отправлено] ' + text);
+    console.log('[DRY-RUN, not actually sent] ' + text);
     return;
   }
   if (!CONFIG.telegramBotToken || !CONFIG.telegramChatId) {
     console.log(
-      `[не отправлено: не задан(ы) ${!CONFIG.telegramBotToken ? 'TELEGRAM_BOT_TOKEN ' : ''}` +
+      `[not sent: missing ${!CONFIG.telegramBotToken ? 'TELEGRAM_BOT_TOKEN ' : ''}` +
       `${!CONFIG.telegramChatId ? 'TELEGRAM_CHAT_ID' : ''}] ` + text
     );
     return;
@@ -320,12 +433,12 @@ function sendTelegramMessage(text) {
     },
     (res) => {
       if (res.statusCode >= 300) {
-        console.error(`[telegram] HTTP ${res.statusCode} при отправке сообщения`);
+        console.error(`[telegram] HTTP ${res.statusCode} while sending message`);
       }
       res.on('data', () => {});
     }
   );
-  req.on('error', (err) => console.error('[telegram] ошибка отправки:', err.message));
+  req.on('error', (err) => console.error('[telegram] send error:', err.message));
   req.write(payload);
   req.end();
 }
@@ -334,7 +447,7 @@ function maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, esta
   const key = `${internalIp}:${proto}:${port}`;
   const now = Date.now() / 1000;
   const last = lastNotified.get(key) || 0;
-  if (now - last < CONFIG.notifyCooldownSec) return; // cooldown ещё не истёк
+  if (now - last < CONFIG.notifyCooldownSec) return; // still within cooldown
 
   lastNotified.set(key, now);
 
@@ -342,15 +455,17 @@ function maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, esta
   stats.lastAlertAt = new Date().toISOString();
 
   const text =
-    `⚠️ <b>Подозрительная активность</b>\n` +
-    `Абонент: <code>${internalIp}</code>\n` +
-    `Порт назначения: <code>${proto}/${port}</code>\n` +
-    `Уникальных удалённых IP за ${Math.round(CONFIG.windowSec / 60)} мин: <b>${distinctCount}</b> ` +
-    `(порог: ${threshold})\n` +
-    `Полуоткрытых (похоже на скан): ${halfOpenTotal}, установленных: ${establishedTotal}`;
+    `⚠️ <b>Suspicious activity</b>\n` +
+    `Subscriber: <code>${internalIp}</code>\n` +
+    `Destination port: <code>${proto}/${port}</code>\n` +
+    `Unique remote IPs in ${Math.round(CONFIG.windowSec / 60)} min: <b>${distinctCount}</b> ` +
+    `(threshold: ${threshold})\n` +
+    `Half-open (scan-like): ${halfOpenTotal}, established: ${establishedTotal}`;
 
   sendTelegramMessage(text);
   console.log(`[ALERT] ${internalIp} -> ${proto}/${port}: distinct=${distinctCount} threshold=${threshold}`);
+
+  handleAutoBlock(internalIp, proto, port);
 }
 
 function runDetection() {
@@ -367,7 +482,7 @@ function runDetection() {
         establishedTotal += entry.establishedCount;
       }
 
-      // proto узнаём по тому, в каком списке лежит port (см. buildWatchSet)
+      // figure out proto from which watch-set this port belongs to
       const proto = TCP_WATCH_SET.has(port) ? 'tcp' : 'udp';
       maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, establishedTotal, threshold);
     }
@@ -375,7 +490,7 @@ function runDetection() {
 }
 
 // ------------------------------------------------------------------
-// 6. Опрос pfctl -ss и основной цикл
+// 6. Polling pfctl -ss and the main loop
 // ------------------------------------------------------------------
 
 const TCP_WATCH_SET = new Set(CONFIG.watchTcpPorts);
@@ -387,10 +502,10 @@ function pollPfctl() {
     stats.lastPollAt = new Date().toISOString();
 
     if (err) {
-      // Частая причина — запуск не от root. Не роняем процесс, просто логируем.
+      // Common cause — not running as root. Don't crash, just log it.
       stats.pfctlErrorCount += 1;
       stats.lastPfctlError = err.message;
-      console.error('[pfctl] ошибка запуска:', err.message, stderr ? `stderr: ${stderr}` : '');
+      console.error('[pfctl] failed to run:', err.message, stderr ? `stderr: ${stderr}` : '');
       writeStatusFile();
       return;
     }
@@ -402,7 +517,7 @@ function pollPfctl() {
       if (!parsed) continue;
       stats.linesParsedTotal += 1;
 
-      // Интересует только исходящее от абонента соединение на watched-порт
+      // Only interested in outbound connections from the subscriber to a watched port
       if (parsed.dir !== '->') continue;
 
       const watchSet = parsed.proto === 'tcp' ? TCP_WATCH_SET : UDP_WATCH_SET;
@@ -423,28 +538,38 @@ let pollTimer = null;
 
 function startScanDetector() {
   if (PARSED_INTERNAL_NETS.length === 0) {
-    console.error('[suspicious-scan-detector] INTERNAL_NETS не задан или невалиден — модуль не запущен');
+    console.error('[suspicious-scan-detector] INTERNAL_NETS is missing or invalid — module not started');
     return;
   }
   console.log(
-    `[suspicious-scan-detector] старт. TCP-порты: [${CONFIG.watchTcpPorts.join(',')}], ` +
-    `UDP-порты: [${CONFIG.watchUdpPorts.join(',')}], окно: ${CONFIG.windowSec}s, ` +
-    `интервал опроса: ${CONFIG.pollIntervalSec}s`
+    `[suspicious-scan-detector] starting. TCP ports: [${CONFIG.watchTcpPorts.join(',')}], ` +
+    `UDP ports: [${CONFIG.watchUdpPorts.join(',')}], window: ${CONFIG.windowSec}s, ` +
+    `poll interval: ${CONFIG.pollIntervalSec}s, auto-block: ${CONFIG.autoBlockEnabled}`
   );
 
-  // Разовое (не периодическое!) сообщение о старте — чтобы сразу увидеть в том
-  // же чате, что процесс поднялся и с какими параметрами. Отключается STARTUP_NOTIFY=0.
+  // One-off (NOT periodic/heartbeat) message on startup — just so it's
+  // visible in the same chat that the process came up, with which
+  // parameters. Disable with STARTUP_NOTIFY=0.
   if (CONFIG.startupNotify) {
     sendTelegramMessage(
-      `🟢 <b>Детектор сканов запущен</b>\n` +
+      `🟢 <b>Scan detector started</b>\n` +
       `TCP: <code>${CONFIG.watchTcpPorts.join(',') || '-'}</code>, ` +
       `UDP: <code>${CONFIG.watchUdpPorts.join(',') || '-'}</code>\n` +
-      `Окно: ${Math.round(CONFIG.windowSec / 60)} мин, порог по умолчанию: ${CONFIG.thresholdDefault}\n` +
-      `Дальше — тишина, если нет реальных срабатываний. Проверить статус: --status, тест алерта: --self-test`
+      `Window: ${Math.round(CONFIG.windowSec / 60)} min, default threshold: ${CONFIG.thresholdDefault}\n` +
+      `No further messages unless a real threshold is triggered. Check status: --status, test alert: --self-test`
     );
   }
 
-  pollPfctl(); // сразу первый прогон
+  // Firewall rules don't survive a reboot, but the block script file does —
+  // re-apply whatever is already recorded there right at startup.
+  if (CONFIG.autoBlockEnabled) {
+    if (ensureBlockScript()) {
+      console.log('[auto-block] re-applying existing block rules on startup (ipfw state does not survive a reboot)');
+      applyBlockScript();
+    }
+  }
+
+  pollPfctl(); // run once immediately
   pollTimer = setInterval(pollPfctl, CONFIG.pollIntervalSec * 1000);
 }
 
@@ -454,76 +579,86 @@ function stopScanDetector() {
 }
 
 // ------------------------------------------------------------------
-// 7. Проверка "работает ли алгоритм" без чтения логов
+// 7. Checking "is the algorithm working" without reading logs
 // ------------------------------------------------------------------
 
-// Печатает текущий статус-файл человекочитаемо. Запуск в любой момент:
+// Prints the current status file in a human-readable form. Run any time:
 //   node suspicious-scan-detector.js --status
-// (читает файл, который основной процесс обновляет на каждом цикле опроса —
-// сам ничего никуда не шлёт)
+// (reads the file the main process updates on every poll cycle — this
+// itself never sends anything anywhere)
 function printStatus() {
   if (!fs.existsSync(CONFIG.statusFilePath)) {
-    console.log(`Файл статуса не найден: ${CONFIG.statusFilePath}`);
-    console.log('Похоже, основной процесс детектора либо не запущен, либо ещё не сделал первый опрос.');
+    console.log(`Status file not found: ${CONFIG.statusFilePath}`);
+    console.log('The main detector process is either not running, or hasn\'t completed its first poll yet.');
     return;
   }
   const data = JSON.parse(fs.readFileSync(CONFIG.statusFilePath, 'utf8'));
-  console.log('=== Статус детектора ===');
-  console.log(`Файл .env загружен из: ${resolvedEnvPath}${fs.existsSync(resolvedEnvPath) ? '' : '  (!! файл не существует — конфиг не подхватился)'}`);
-  console.log(`Запущен:                ${data.startedAt}`);
-  console.log(`Последний опрос:        ${data.lastPollAt}`);
-  console.log(`Циклов опроса всего:    ${data.pollCount}`);
-  console.log(`Ошибок вызова pfctl:    ${data.pfctlErrorCount}${data.lastPfctlError ? ' (последняя: ' + data.lastPfctlError + ')' : ''}`);
-  console.log(`Строк pfctl разобрано:  ${data.linesParsedTotal}`);
-  console.log(`Из них по watched-порту: ${data.linesWatchedTotal}`);
-  console.log(`Алертов отправлено:     ${data.alertsSentTotal}${data.lastAlertAt ? ' (последний: ' + data.lastAlertAt + ')' : ''}`);
+  console.log('=== Detector status ===');
+  console.log(`.env loaded from: ${resolvedEnvPath}${fs.existsSync(resolvedEnvPath) ? '' : '  (!! file does not exist — config was NOT picked up)'}`);
+  console.log(`Started:                ${data.startedAt}`);
+  console.log(`Last poll:              ${data.lastPollAt}`);
+  console.log(`Total poll cycles:      ${data.pollCount}`);
+  console.log(`pfctl call errors:      ${data.pfctlErrorCount}${data.lastPfctlError ? ' (last: ' + data.lastPfctlError + ')' : ''}`);
+  console.log(`pfctl lines parsed:     ${data.linesParsedTotal}`);
+  console.log(`  of which on watched ports: ${data.linesWatchedTotal}`);
+  console.log(`Alerts sent:            ${data.alertsSentTotal}${data.lastAlertAt ? ' (last: ' + data.lastAlertAt + ')' : ''}`);
+  console.log(`Auto-block enabled:     ${data.config.autoBlockEnabled}`);
+  console.log(`Block rules added:      ${data.blockRulesAddedTotal}${data.lastBlockAt ? ' (last: ' + data.lastBlockAt + ')' : ''}`);
   console.log('');
   if (data.trackedInternalIps.length === 0) {
-    console.log('Сейчас в окне наблюдения нет абонентов с трафиком на watched-порты — это нормально, если скана нет.');
+    console.log('No subscribers currently in the observation window on watched ports — normal if there is no scan.');
   } else {
-    console.log('Абоненты в окне наблюдения сейчас (internal_ip: {port: уникальных_remote_ip}):');
+    console.log('Subscribers currently in the observation window (internal_ip: {port: unique_remote_ips}):');
     for (const { internalIp, ports } of data.trackedInternalIps) {
       console.log(`  ${internalIp}: ${JSON.stringify(ports)}`);
     }
   }
   console.log('');
-  console.log('Если "Циклов опроса всего" растёт при повторном вызове --status — процесс жив и опрашивает pfctl.');
-  console.log('Если "Ошибок вызова pfctl" > 0 — скорее всего процесс запущен не от root, алгоритм НЕ видит трафик.');
+  console.log('If "Total poll cycles" increases on repeated --status calls — the process is alive and polling pfctl.');
+  console.log('If "pfctl call errors" > 0 — the process is most likely not running as root, the algorithm sees NO traffic.');
 }
 
-// Прогоняет синтетический "скан" через реальный детектор+Telegram, не трогая
-// боевое состояние (использует отдельный набор данных). Подтверждает разом:
-// парсинг, подсчёт уникальных IP, порог, cooldown-логику, отправку в Telegram.
+// Runs a synthetic "scan" through the real detector + Telegram path, without
+// touching production state (uses a separate, obviously-fake dataset).
+// Confirms in one shot: parsing, distinct-IP counting, threshold logic,
+// cooldown logic, and the Telegram send. Real ipfw blocking is skipped even
+// if AUTO_BLOCK_ENABLED=true, so this never pollutes the real firewall script.
 //   node suspicious-scan-detector.js --self-test
 function runSelfTest() {
-  console.log('[self-test] генерирую синтетический скан на первый watched TCP-порт...');
+  console.log('[self-test] generating a synthetic scan on the first watched TCP port...');
   const testPort = CONFIG.watchTcpPorts[0];
   if (!testPort) {
-    console.log('[self-test] в WATCH_TCP_PORTS нет ни одного порта — нечего тестировать.');
+    console.log('[self-test] WATCH_TCP_PORTS is empty — nothing to test.');
     return;
   }
+
+  selfTestMode = true;
+
   const threshold = thresholdForPort(testPort);
   const fakeInternalIp = PARSED_INTERNAL_NETS.length
     ? intToIpForSelfTest(PARSED_INTERNAL_NETS[0].net + 250)
     : '192.168.0.250';
-  const fakeRemotes = Array.from({ length: threshold + 2 }, (_, i) => `203.0.113.${i + 1}`); // TEST-NET-3, безопасные "фейковые" адреса
+  const fakeRemotes = Array.from({ length: threshold + 2 }, (_, i) => `203.0.113.${i + 1}`); // TEST-NET-3, safe "fake" addresses
 
   for (const remoteIp of fakeRemotes) {
     recordSighting(fakeInternalIp, testPort, remoteIp, true);
   }
 
-  console.log(`[self-test] внутренний IP (фиктивный): ${fakeInternalIp}, порт: ${testPort}, ` +
-    `порог: ${threshold}, сгенерировано remote IP: ${fakeRemotes.length}`);
-  console.log('[self-test] это должно вызвать реальную отправку в Telegram (если DRY_RUN не включён) с пометкой ниже.');
+  console.log(`[self-test] fake internal IP: ${fakeInternalIp}, port: ${testPort}, ` +
+    `threshold: ${threshold}, fake remote IPs generated: ${fakeRemotes.length}`);
+  console.log('[self-test] this should trigger a real Telegram send (unless DRY_RUN is on) — see the label above the message.');
+  console.log('[self-test] any AUTO_BLOCK_ENABLED ipfw rule will be skipped on purpose — this is synthetic data only.');
 
-  runDetection(); // пойдёт по всему state, включая наш фиктивный IP — вызовет maybeNotify -> sendTelegramMessage
+  runDetection(); // walks the whole state, including our fake IP — triggers maybeNotify -> sendTelegramMessage
 
-  // подчищаем за собой, чтобы фиктивный IP не остался в боевом состоянии/статусе
+  // clean up after ourselves so the fake IP doesn't linger in production state/status
   state.delete(fakeInternalIp);
   lastNotified.delete(`${fakeInternalIp}:tcp:${testPort}`);
 
-  console.log('[self-test] готово. Проверьте Telegram-чат — там должно появиться сообщение с "⚠️ Подозрительная активность"');
-  console.log('[self-test] и внутренним IP вида *.250 из тестовой сети — это подтверждает, что вся цепочка работает.');
+  selfTestMode = false;
+
+  console.log('[self-test] done. Check the Telegram chat — you should see a message with "⚠️ Suspicious activity"');
+  console.log('[self-test] and an internal IP ending in *.250 from the test range — that confirms the whole chain works.');
 }
 
 function intToIpForSelfTest(intVal) {
@@ -537,7 +672,7 @@ function intToIpForSelfTest(intVal) {
 
 module.exports = { startScanDetector, stopScanDetector, parseLine, isInternalIp };
 
-// Позволяет запускать модуль отдельным процессом: `node suspicious-scan-detector.js`
+// Allows running the module as a standalone process: `node suspicious-scan-detector.js`
 if (require.main === module) {
   const arg = process.argv[2];
   if (arg === '--status') {
