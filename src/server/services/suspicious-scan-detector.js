@@ -478,28 +478,49 @@ function maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, esta
 }
 
 // ------------------------------------------------------------------
-// 5b. Детектор UDP-флуда (ТОЛЬКО Telegram, без вызова ipfw)
+// 5b. Детектор UDP-флуда (с пачечной группировкой алертов)
 // ------------------------------------------------------------------
 
-function maybeNotifyUdpFlood(internalIp, currentStates, threshold) {
-  const key = `${internalIp}:udp:FLOOD`; // изолированный ключ для cooldown
+function checkUdpFloods(activeUdpCounts) {
   const now = Date.now() / 1000;
-  const last = lastNotified.get(key) || 0;
-  if (now - last < CONFIG.notifyCooldownSec) return;
+  const flagged = [];
 
-  lastNotified.set(key, now);
+  for (const [internalIp, count] of activeUdpCounts.entries()) {
+    if (count >= CONFIG.thresholdUdpMaxStates) {
+      const key = `${internalIp}:udp:FLOOD`;
+      const last = lastNotified.get(key) || 0;
+      
+      if (now - last >= CONFIG.notifyCooldownSec) {
+        lastNotified.set(key, now);
+        flagged.push({ internalIp, count });
+      }
+    }
+  }
+
+  if (flagged.length === 0) return;
 
   stats.alertsSentTotal += 1;
   stats.lastAlertAt = new Date().toISOString();
 
-  const text =
-    `🚨 <b>UDP Outbound Flood / DDoS Detected</b>\n` +
-    `Subscriber: <code>${internalIp}</code>\n` +
-    `Active UDP States in pfctl: <b>${currentStates}</b> (threshold: ${threshold})\n` +
-    `Warning: High outbound UDP traffic detected across multiple ports.`;
+  let text;
+  
+  if (flagged.length === 1) {
+    const { internalIp, count } = flagged[0];
+    text =
+      `🚨 <b>UDP Outbound Flood / DDoS Detected</b>\n` +
+      `Subscriber: <code>${internalIp}</code>\n` +
+      `Active UDP States: <b>${count}</b> (threshold: ${CONFIG.thresholdUdpMaxStates})\n` +
+      `Warning: High outbound UDP traffic detected.`;
+  } else {
+    text =
+      `🚨 <b>UDP Outbound Flood / DDoS (Multiple Subscribers)</b>\n` +
+      `Threshold: <b>${CONFIG.thresholdUdpMaxStates}</b> active UDP states\n` +
+      `Affected subscribers (${flagged.length}):\n` +
+      flagged.map(f => `• <code>${f.internalIp}</code>: <b>${f.count}</b> states`).join('\n');
+  }
 
   sendTelegramMessage(text);
-  console.log(`[UDP FLOOD ALERT] ${internalIp}: active_udp_states=${currentStates} threshold=${threshold}`);
+  console.log(`[UDP FLOOD ALERT] Triggered for ${flagged.length} subscriber(s)`);
 }
 
 function checkUdpFloods(activeUdpCounts) {
