@@ -100,28 +100,37 @@ function envInt(name, def) {
 }
 
 const CONFIG = {
-  pollIntervalSec: envInt('POLL_INTERVAL_SEC', 30),
-  windowSec: envInt('WINDOW_SEC', 600),
-  notifyCooldownSec: envInt('NOTIFY_COOLDOWN_SEC', 1800),
-  internalNets: envList('INTERNAL_NETS', ['192.168.0.0/16', '10.100.0.0/16']),
-  watchTcpPorts: envList('WATCH_TCP_PORTS', ['22', '23', '25', '3389']).map(Number),
-  watchUdpPorts: envList('WATCH_UDP_PORTS', []).map(Number),
-  thresholdDefault: envInt('THRESHOLD_DISTINCT_IPS_DEFAULT', 5),
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
-  telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
-  pfctlPath: process.env.PFCTL_PATH || '/sbin/pfctl',
-  // if true — never actually send to Telegram, just log to console
-  dryRun: process.env.DRY_RUN === '1',
-  // one-off Telegram message on process startup (NOT periodic/heartbeat)
-  startupNotify: process.env.STARTUP_NOTIFY !== '0',
-  // local JSON status file — inspect on demand, nothing periodic is pushed anywhere
-  statusFilePath: process.env.STATUS_FILE_PATH || path.join(__dirname, 'detector-status.json'),
-  // automatic ipfw blocking — disabled by default, opt-in only
-  autoBlockEnabled: process.env.AUTO_BLOCK_ENABLED === 'true',
-  ipfwPath: process.env.IPFW_PATH || '/sbin/ipfw',
-  blockRuleNumber: process.env.BLOCK_RULE_NUMBER || '00111',
-  blockScriptPath: process.env.BLOCK_SCRIPT_PATH || path.join(PROJECT_ROOT, 'firewall', 'block-suspicious.sh'),
-};
+	pollIntervalSec: envInt("POLL_INTERVAL_SEC", 30),
+	windowSec: envInt("WINDOW_SEC", 600),
+	notifyCooldownSec: envInt("NOTIFY_COOLDOWN_SEC", 1800),
+	internalNets: envList("INTERNAL_NETS", ["192.168.0.0/16", "10.100.0.0/16"]),
+	watchTcpPorts: envList("WATCH_TCP_PORTS", ["22", "23", "25", "3389"]).map(
+		Number,
+	),
+	watchUdpPorts: envList("WATCH_UDP_PORTS", []).map(Number),
+	thresholdDefault: envInt("THRESHOLD_DISTINCT_IPS_DEFAULT", 5),
+	telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
+	telegramChatId: process.env.TELEGRAM_CHAT_ID || "",
+	pfctlPath: process.env.PFCTL_PATH || "/sbin/pfctl",
+	// if true — never actually send to Telegram, just log to console
+	dryRun: process.env.DRY_RUN === "1",
+	// one-off Telegram message on process startup (NOT periodic/heartbeat)
+	startupNotify: process.env.STARTUP_NOTIFY !== "0",
+	// local JSON status file — inspect on demand, nothing periodic is pushed anywhere
+	statusFilePath:
+		process.env.STATUS_FILE_PATH ||
+		path.join(__dirname, "detector-status.json"),
+	// automatic ipfw blocking — disabled by default, opt-in only
+	autoBlockEnabled: process.env.AUTO_BLOCK_ENABLED === "true",
+	ipfwPath: process.env.IPFW_PATH || "/sbin/ipfw",
+	blockRuleNumber: process.env.BLOCK_RULE_NUMBER || "00111",
+	blockScriptPath:
+		process.env.BLOCK_SCRIPT_PATH ||
+		path.join(PROJECT_ROOT, "firewall", "block-suspicious.sh"),
+	// UDP Flood Detector Settings
+	thresholdUdpMaxStates: envInt("THRESHOLD_UDP_MAX_STATES", 100),
+	enableUdpFloodDetector: process.env.ENABLE_UDP_FLOOD_DETECTOR !== "false",
+}
 
 function thresholdForPort(port) {
   const specific = process.env[`THRESHOLD_DISTINCT_IPS_PORT_${port}`];
@@ -468,6 +477,39 @@ function maybeNotify(internalIp, port, proto, distinctCount, halfOpenTotal, esta
   handleAutoBlock(internalIp, proto, port);
 }
 
+// ------------------------------------------------------------------
+// 5b. Детектор UDP-флуда (ТОЛЬКО Telegram, без вызова ipfw)
+// ------------------------------------------------------------------
+
+function maybeNotifyUdpFlood(internalIp, currentStates, threshold) {
+  const key = `${internalIp}:udp:FLOOD`; // изолированный ключ для cooldown
+  const now = Date.now() / 1000;
+  const last = lastNotified.get(key) || 0;
+  if (now - last < CONFIG.notifyCooldownSec) return;
+
+  lastNotified.set(key, now);
+
+  stats.alertsSentTotal += 1;
+  stats.lastAlertAt = new Date().toISOString();
+
+  const text =
+    `🚨 <b>UDP Outbound Flood / DDoS Detected</b>\n` +
+    `Subscriber: <code>${internalIp}</code>\n` +
+    `Active UDP States in pfctl: <b>${currentStates}</b> (threshold: ${threshold})\n` +
+    `Warning: High outbound UDP traffic detected across multiple ports.`;
+
+  sendTelegramMessage(text);
+  console.log(`[UDP FLOOD ALERT] ${internalIp}: active_udp_states=${currentStates} threshold=${threshold}`);
+}
+
+function checkUdpFloods(activeUdpCounts) {
+  for (const [internalIp, count] of activeUdpCounts.entries()) {
+    if (count >= CONFIG.thresholdUdpMaxStates) {
+      maybeNotifyUdpFlood(internalIp, count, CONFIG.thresholdUdpMaxStates);
+    }
+  }
+}
+
 function runDetection() {
   for (const [internalIp, byPort] of state) {
     for (const [port, byRemote] of byPort) {
@@ -497,41 +539,66 @@ const TCP_WATCH_SET = new Set(CONFIG.watchTcpPorts);
 const UDP_WATCH_SET = new Set(CONFIG.watchUdpPorts);
 
 function pollPfctl() {
-  execFile(CONFIG.pfctlPath, ['-ss'], { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
-    stats.pollCount += 1;
-    stats.lastPollAt = new Date().toISOString();
+	execFile(
+		CONFIG.pfctlPath,
+		["-ss"],
+		{ maxBuffer: 16 * 1024 * 1024 },
+		(err, stdout, stderr) => {
+			stats.pollCount += 1
+			stats.lastPollAt = new Date().toISOString()
 
-    if (err) {
-      // Common cause — not running as root. Don't crash, just log it.
-      stats.pfctlErrorCount += 1;
-      stats.lastPfctlError = err.message;
-      console.error('[pfctl] failed to run:', err.message, stderr ? `stderr: ${stderr}` : '');
-      writeStatusFile();
-      return;
-    }
+			if (err) {
+				stats.pfctlErrorCount += 1
+				stats.lastPfctlError = err.message
+				console.error(
+					"[pfctl] failed to run:",
+					err.message,
+					stderr ? `stderr: ${stderr}` : "",
+				)
+				writeStatusFile()
+				return
+			}
 
-    const lines = stdout.split('\n');
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const parsed = parseLine(line);
-      if (!parsed) continue;
-      stats.linesParsedTotal += 1;
+			const activeUdpCounts = new Map()
 
-      // Only interested in outbound connections from the subscriber to a watched port
-      if (parsed.dir !== '->') continue;
+			const lines = stdout.split("\n")
+			for (const line of lines) {
+				if (!line.trim()) continue
+				const parsed = parseLine(line)
+				if (!parsed) continue
+				stats.linesParsedTotal += 1
 
-      const watchSet = parsed.proto === 'tcp' ? TCP_WATCH_SET : UDP_WATCH_SET;
-      if (!watchSet.has(parsed.remotePort)) continue;
+				// Only interested in outbound connections from the subscriber to a watched port
+				if (parsed.dir !== "->") continue
 
-      stats.linesWatchedTotal += 1;
-      const halfOpen = isHalfOpenState(parsed.stateLocal, parsed.stateRemote);
-      recordSighting(parsed.internalIp, parsed.remotePort, parsed.remoteIp, halfOpen);
-    }
+				if (parsed.proto === "udp") {
+					const currentCount = activeUdpCounts.get(parsed.internalIp) || 0
+					activeUdpCounts.set(parsed.internalIp, currentCount + 1)
+				}
 
-    cleanupOldEntries();
-    runDetection();
-    writeStatusFile();
-  });
+				const watchSet = parsed.proto === "tcp" ? TCP_WATCH_SET : UDP_WATCH_SET
+				if (!watchSet.has(parsed.remotePort)) continue
+
+				stats.linesWatchedTotal += 1
+				const halfOpen = isHalfOpenState(parsed.stateLocal, parsed.stateRemote)
+				recordSighting(
+					parsed.internalIp,
+					parsed.remotePort,
+					parsed.remoteIp,
+					halfOpen,
+				)
+			}
+
+			cleanupOldEntries()
+			runDetection()
+
+			if (CONFIG.enableUdpFloodDetector) {
+				checkUdpFloods(activeUdpCounts)
+			}
+
+			writeStatusFile()
+		},
+	)
 }
 
 let pollTimer = null;
