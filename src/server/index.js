@@ -10,14 +10,20 @@ const { logAnaliseStarter } = require('./services/logWatchService')
 const fs = require('fs')
 const path = require('path')
 
+const resolveCertPath = (envName, defaultFile) => {
+  const dir = process.env.SSL_CERT_DIR || path.resolve(__dirname, '../../path/to')
+  const value = process.env[envName] || defaultFile
+  return path.isAbsolute(value) ? value : path.join(dir, value)
+}
+
 const credentials = {
-  key: fs.readFileSync(path.resolve(__dirname, '../../path/to/key.pem')),
-  cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate.pem'))
+  key: fs.readFileSync(resolveCertPath('SSL_KEY_FILE', 'key.pem')),
+  cert: fs.readFileSync(resolveCertPath('SSL_CERT_FILE', 'certificate.pem'))
 }
 
 const credentials_gate = {
-  key: fs.readFileSync(path.resolve(__dirname, '../../path/to/key_gate.pem')),
-  cert: fs.readFileSync(path.resolve(__dirname, '../../path/to/certificate_gate.pem'))
+  key: fs.readFileSync(resolveCertPath('SSL_GATE_KEY_FILE', 'key_gate.pem')),
+  cert: fs.readFileSync(resolveCertPath('SSL_GATE_CERT_FILE', 'certificate_gate.pem'))
 }
 
 const app = Fastify({ trustProxy: true })
